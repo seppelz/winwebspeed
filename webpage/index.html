@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="WebSpeed - Real-time network speed and CPU monitoring for Windows. Lightweight, beautiful, and always visible in your taskbar.">
+  <meta name="keywords" content="network monitor, speed test, windows app, cpu monitor, bandwidth monitor, taskbar overlay">
+  <title>WebSpeed - Real-time Network & CPU Monitor for Windows</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-content">
+        <div class="logo">
+          <i data-lucide="zap" class="logo-icon"></i>
+          <span class="logo-text">WebSpeed</span>
+        </div>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#download">Download</a>
+          <a href="#about">About</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <i data-lucide="sparkles" class="badge-icon"></i>
+          <span>New: CPU Monitoring</span>
+        </div>
+        <h1 class="hero-title">
+          Monitor Your Network Speed
+          <span class="gradient-text">in Real-Time</span>
+        </h1>
+        <p class="hero-description">
+          WebSpeed is a lightweight Windows application that displays your network upload/download speeds 
+          and CPU usage directly in your taskbar. Beautiful, minimal, and always visible. 
+          <strong>Detect suspicious activity, verify downloads, and stay informed about your connection.</strong>
+        </p>
+        <div class="hero-cta">
+          <a href="#download" class="btn btn-primary">
+            <span>Download Free</span>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 2V12M10 12L6 8M10 12L14 8M3 14V16C3 17.1046 3.89543 18 5 18H15C16.1046 18 17 17.1046 17 16V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a href="#features" class="btn btn-secondary">Learn More</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <div class="stat-value">100%</div>
+            <div class="stat-label">Free</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">~50MB</div>
+            <div class="stat-label">Installer*</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">Real-time</div>
+            <div class="stat-label">Updates</div>
+          </div>
+        </div>
+        <p class="hero-note">*Compressed installer. Unpacked size ~170MB (typical for Electron apps)</p>
+      </div>
+      <div class="hero-visual">
+        <div class="app-preview">
+          <div class="preview-window">
+            <div class="preview-header">
+              <div class="preview-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="preview-title">WebSpeed Monitor</div>
+            </div>
+            <div class="preview-content">
+              <div class="preview-stat download">
+                <div class="preview-icon">
+                  <i data-lucide="download"></i>
+                </div>
+                <div class="preview-info">
+                  <div class="preview-label">Download</div>
+                  <div class="preview-value">45.2</div>
+                  <div class="preview-unit">Mbit/s</div>
+                </div>
+              </div>
+              <div class="preview-stat upload">
+                <div class="preview-icon">
+                  <i data-lucide="upload"></i>
+                </div>
+                <div class="preview-info">
+                  <div class="preview-label">Upload</div>
+                  <div class="preview-value">12.8</div>
+                  <div class="preview-unit">Mbit/s</div>
+                </div>
+              </div>
+              <div class="preview-stat cpu">
+                <div class="preview-icon">
+                  <i data-lucide="cpu"></i>
+                </div>
+                <div class="preview-info">
+                  <div class="preview-label">CPU Usage</div>
+                  <div class="preview-value">23.5</div>
+                  <div class="preview-unit">%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="features">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Powerful Features</h2>
+        <p class="section-description">Everything you need to monitor your network and system performance</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="activity"></i>
+          </div>
+          <h3 class="feature-title">Real-Time Monitoring</h3>
+          <p class="feature-description">
+            Get instant updates on your network speeds every second. See your download and upload rates 
+            in real-time with precise measurements.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="cpu"></i>
+          </div>
+          <h3 class="feature-title">CPU Performance</h3>
+          <p class="feature-description">
+            Monitor your CPU usage percentage and temperature alongside network stats. 
+            Keep an eye on system performance at a glance.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="monitor"></i>
+          </div>
+          <h3 class="feature-title">Taskbar Overlay</h3>
+          <p class="feature-description">
+            Always-visible stats right in your taskbar. No need to open windows or check system tray. 
+            Your speeds are always in view.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="bar-chart-3"></i>
+          </div>
+          <h3 class="feature-title">Detailed Statistics</h3>
+          <p class="feature-description">
+            Open the detailed window to see total data transferred, connection type, 
+            monitoring duration, and customizable display options.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="palette"></i>
+          </div>
+          <h3 class="feature-title">Customizable Display</h3>
+          <p class="feature-description">
+            Choose your preferred units (kbps, Mbit/s, MB/s), set max speed for progress bars, 
+            and toggle visibility of CPU stats and progress indicators.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="zap"></i>
+          </div>
+          <h3 class="feature-title">Lightweight & Fast</h3>
+          <p class="feature-description">
+            Minimal resource usage. WebSpeed runs efficiently in the background without 
+            impacting your system performance.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Monitor Section -->
+  <section class="why-monitor">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Why Always Monitor Your Network?</h2>
+        <p class="section-description">Stay informed and secure with real-time network visibility</p>
+      </div>
+      <div class="benefits-grid">
+        <div class="benefit-card security">
+          <div class="benefit-icon">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h3 class="benefit-title">Security & Malware Detection</h3>
+          <p class="benefit-description">
+            <strong>Detect suspicious activity instantly.</strong> If you notice your upload speed is unexpectedly high 
+            while you're not doing anything, it could be a sign of malware, spyware, or unauthorized data transmission. 
+            WebSpeed gives you the visibility to catch these threats early before they cause serious damage.
+          </p>
+          <p class="benefit-description">
+            Malicious software often sends data in the background without your knowledge. With WebSpeed always visible 
+            in your taskbar, you'll immediately notice unusual network activity and can take action to protect your privacy.
+          </p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">
+            <i data-lucide="play-circle"></i>
+          </div>
+          <h3 class="benefit-title">Know If Content Is Actually Loading</h3>
+          <p class="benefit-description">
+            Ever wondered if your video stream is buffering or if a download is stuck? WebSpeed shows you exactly 
+            what's happening. See real-time download speeds to know if your content is loading properly or if there's 
+            a connection issue that needs attention.
+          </p>
+          <p class="benefit-description">
+            No more guessing whether your browser is working or if you need to refresh. The numbers don't lie – 
+            you'll see immediately if data is flowing or if something needs troubleshooting.
+          </p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">
+            <i data-lucide="globe"></i>
+          </div>
+          <h3 class="benefit-title">See Your Actual Browsing Speed</h3>
+          <p class="benefit-description">
+            Understand your real internet performance as you surf. See how fast pages load, how quickly files download, 
+            and whether you're getting the speeds you're paying for from your ISP.
+          </p>
+          <p class="benefit-description">
+            Track your connection quality throughout the day. Identify peak usage times, notice when speeds drop, 
+            and verify if your internet service is performing as advertised.
+          </p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">
+            <i data-lucide="hard-drive"></i>
+          </div>
+          <h3 class="benefit-title">Monitor Data Usage</h3>
+          <p class="benefit-description">
+            Keep track of how much data you're transferring. WebSpeed shows total bytes downloaded and uploaded 
+            since monitoring started, helping you stay within data caps and understand your usage patterns.
+          </p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">
+            <i data-lucide="search"></i>
+          </div>
+          <h3 class="benefit-title">Troubleshoot Connection Issues</h3>
+          <p class="benefit-description">
+            Quickly identify network problems. If speeds suddenly drop to zero or become inconsistent, you'll know 
+            immediately that there's an issue with your connection, router, or service provider.
+          </p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">
+            <i data-lucide="settings"></i>
+          </div>
+          <h3 class="benefit-title">Optimize Your Network</h3>
+          <p class="benefit-description">
+            Make informed decisions about your network usage. See which activities consume the most bandwidth, 
+            identify background processes that might be slowing you down, and optimize your internet experience.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-description">Simple setup, powerful monitoring</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3>Download & Install</h3>
+          <p>Get the installer or portable version. No complex setup required.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3>Run in Background</h3>
+          <p>WebSpeed starts automatically and monitors your network continuously.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3>View Your Stats</h3>
+          <p>See real-time speeds in the taskbar overlay or open the detailed window.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Section -->
+  <section id="download" class="download">
+    <div class="container">
+      <div class="download-content">
+        <h2 class="download-title">Ready to Get Started?</h2>
+        <p class="download-description">
+          Download WebSpeed for Windows 10/11. Available as installer or portable version.
+        </p>
+        <div class="download-options">
+          <div class="download-card">
+            <div class="download-icon">
+              <i data-lucide="package"></i>
+            </div>
+            <h3>Installer</h3>
+            <p>Recommended for most users. Includes automatic startup and easy uninstallation.</p>
+            <a href="#" class="btn btn-primary btn-block">Download Installer</a>
+            <div class="download-meta">Windows 10/11 • Latest Version</div>
+          </div>
+          <div class="download-card">
+            <div class="download-icon">
+              <i data-lucide="briefcase"></i>
+            </div>
+            <h3>Portable</h3>
+            <p>No installation needed. Run directly from any folder. Perfect for USB drives.</p>
+            <a href="#" class="btn btn-secondary btn-block">Download Portable</a>
+            <div class="download-meta">Windows 10/11 • Latest Version</div>
+          </div>
+        </div>
+        <div class="download-note">
+          <p>💡 <strong>Note:</strong> Download links will be available once the releases are published on GitHub.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section id="about" class="about">
+    <div class="container">
+      <div class="about-content">
+        <h2 class="section-title">About WebSpeed</h2>
+        <p class="about-text">
+          WebSpeed was created to provide a simple, elegant solution for monitoring network performance 
+          on Windows. Unlike heavy monitoring tools, WebSpeed focuses on what matters: giving you 
+          real-time visibility into your network speeds and system performance without getting in your way.
+        </p>
+        <div class="about-features">
+          <div class="about-feature">
+            <strong>Open Source</strong>
+            <p>Built with transparency. View the code, contribute, or customize to your needs.</p>
+          </div>
+          <div class="about-feature">
+            <strong>Privacy First</strong>
+            <p>All monitoring happens locally. No data collection, no telemetry, no internet required.</p>
+          </div>
+          <div class="about-feature">
+            <strong>Free Forever</strong>
+            <p>WebSpeed is completely free with no ads, no premium features, and no limitations.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="logo">
+            <span class="logo-icon">⚡</span>
+            <span class="logo-text">WebSpeed</span>
+          </div>
+          <p class="footer-tagline">Real-time network monitoring for Windows</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Product</h4>
+            <a href="#features">Features</a>
+            <a href="#download">Download</a>
+            <a href="#about">About</a>
+          </div>
+          <div class="footer-column">
+            <h4>Resources</h4>
+            <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://github.com" target="_blank" rel="noopener">Documentation</a>
+            <a href="https://github.com" target="_blank" rel="noopener">Issues</a>
+          </div>
+          <div class="footer-column">
+            <h4>Legal</h4>
+            <a href="#">Privacy Policy</a>
+            <a href="#">License</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024 WebSpeed. Open source under MIT License.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>
+

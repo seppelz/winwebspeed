@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'none'; font-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none';">
+  <title>WebSpeed Taskbar Overlay</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: transparent;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 0;
+      margin: 0;
+      -webkit-app-region: no-drag;
+      cursor: move;
+    }
+
+    .speed-container {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 16px;
+      background: transparent;
+      padding: 6px 10px;
+      -webkit-app-region: drag;
+      cursor: move;
+      min-width: 500px;
+    }
+    
+    .cpu-info-overlay {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-top: 2px;
+    }
+    
+    .cpu-temp-overlay {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    
+    .cpu-process-overlay {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .ram-info-overlay {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-top: 2px;
+    }
+    
+    .ram-process-overlay {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .speed-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .speed-item-header {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .arrow {
+      font-size: 14px;
+      color: #ffffff;
+    }
+
+    .speed-value {
+      color: #ffffff;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-weight: 700;
+    }
+
+    .speed-label {
+      font-size: 11px;
+      color: #ffffff;
+      opacity: 0.9;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      margin-top: 2px;
+    }
+
+    .progress-bar-container.hidden {
+      display: none;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+      background: linear-gradient(90deg, #4caf50 0%, #8bc34a 25%, #ffeb3b 50%, #ff9800 75%, #f44336 100%);
+      min-width: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="speed-container">
+    <div class="speed-item download">
+      <div class="speed-item-header">
+        <span class="arrow">↓</span>
+        <span class="speed-value" id="download-speed">0</span>
+        <span class="speed-label" id="download-unit-label">Mbit/s</span>
+      </div>
+      <div class="progress-bar-container" id="download-progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" id="download-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+    <div class="speed-item upload">
+      <div class="speed-item-header">
+        <span class="arrow">↑</span>
+        <span class="speed-value" id="upload-speed">0</span>
+        <span class="speed-label" id="upload-unit-label">Mbit/s</span>
+      </div>
+      <div class="progress-bar-container" id="upload-progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" id="upload-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+    <div class="speed-item cpu">
+      <div class="speed-item-header">
+        <i data-lucide="cpu" class="arrow" style="width: 14px; height: 14px;"></i>
+        <span class="speed-value" id="cpu-usage">--</span>
+        <span class="speed-label">%</span>
+      </div>
+      <div class="cpu-info-overlay">
+        <div class="cpu-temp-overlay" id="cpu-temp-overlay" style="display: none;">
+          <span class="speed-label" style="font-size: 10px; opacity: 0.8;" id="cpu-temperature">--</span>
+          <span class="speed-label" style="font-size: 10px; opacity: 0.8;">°C</span>
+        </div>
+        <div class="cpu-process-overlay" id="cpu-process-overlay" style="display: none;">
+          <span class="speed-label" style="font-size: 10px; opacity: 0.8;" id="cpu-process">--</span>
+          <span class="speed-label" style="font-size: 10px; opacity: 0.8;" id="cpu-process-usage">--</span>
+        </div>
+      </div>
+    </div>
+    <div class="speed-item ram">
+      <div class="speed-item-header">
+        <i data-lucide="hard-drive" class="arrow" style="width: 14px; height: 14px;"></i>
+        <span class="speed-value" id="ram-usage">--</span>
+        <span class="speed-label">%</span>
+      </div>
+      <div class="ram-info-overlay">
+        <div class="ram-process-overlay" id="ram-process-overlay" style="display: none;">
+          <span class="speed-label" style="font-size: 10px; opacity: 0.8;" id="ram-process">--</span>
+          <span class="speed-label" style="font-size: 10px; opacity: 0.8;" id="ram-process-usage">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Convert kbps to different units
+    function convertSpeed(kbps, unit) {
+      switch (unit) {
+        case 'kbps':
+          return kbps;
+        case 'mbps':
+          return kbps / 1000; // Mbit/s
+        case 'mbs':
+          return (kbps / 1000) / 8; // MB/s (megabytes per second)
+        default:
+          return kbps / 1000;
+      }
+    }
+    
+    // Get unit label
+    function getUnitLabel(unit) {
+      switch (unit) {
+        case 'kbps':
+          return 'kbps';
+        case 'mbps':
+          return 'Mbit/s';
+        case 'mbs':
+          return 'MB/s';
+        default:
+          return 'Mbit/s';
+      }
+    }
+    
+    // Get selected unit from localStorage (default Mbit/s)
+    function getSelectedUnit() {
+      const stored = localStorage.getItem('netspeed-unit');
+      if (stored && ['kbps', 'mbps', 'mbs'].includes(stored)) {
+        return stored;
+      }
+      return 'mbps'; // Default Mbit/s
+    }
+    
+    // Convert kbps to Mbit/s (1 Mbit/s = 1000 kbps) - for progress bars
+    function kbpsToMbps(kbps) {
+      return kbps / 1000;
+    }
+    
+    // Get max speed from localStorage (default 100 Mbit/s)
+    function getMaxSpeed() {
+          const stored = localStorage.getItem('webspeed-max-speed');
+      if (stored) {
+        const value = parseFloat(stored);
+        if (!isNaN(value) && value > 0) {
+          return value;
+        }
+      }
+      return 100; // Default 100 Mbit/s
+    }
+    
+    // Update progress bar
+    function updateProgressBar(elementId, speedMbps, maxSpeedMbps) {
+      const progressFill = document.getElementById(elementId);
+      if (progressFill) {
+        const percentage = Math.min((speedMbps / maxSpeedMbps) * 100, 100);
+        progressFill.style.width = `${percentage}%`;
+      }
+    }
+    
+    // Get progress bar visibility from localStorage
+    function getShowProgress() {
+          const stored = localStorage.getItem('webspeed-show-progress');
+      if (stored !== null) {
+        return stored === 'true';
+      }
+      return true; // Default to showing progress bars
+    }
+    
+    // Update progress bar visibility
+    function updateProgressBarVisibility() {
+      const showProgress = getShowProgress();
+      const downloadProgressContainer = document.getElementById('download-progress-container');
+      const uploadProgressContainer = document.getElementById('upload-progress-container');
+      
+      if (downloadProgressContainer) {
+        if (showProgress) {
+          downloadProgressContainer.classList.remove('hidden');
+        } else {
+          downloadProgressContainer.classList.add('hidden');
+        }
+      }
+      
+      if (uploadProgressContainer) {
+        if (showProgress) {
+          uploadProgressContainer.classList.remove('hidden');
+        } else {
+          uploadProgressContainer.classList.add('hidden');
+        }
+      }
+    }
+    
+    // Update the overlay with new network stats
+    function updateStats(stats) {
+      const maxSpeedMbps = getMaxSpeed();
+      const selectedUnit = getSelectedUnit();
+      
+      // Convert to selected unit
+      const downloadSpeed = convertSpeed(stats.downloadSpeed, selectedUnit);
+      const uploadSpeed = convertSpeed(stats.uploadSpeed, selectedUnit);
+      
+      // For progress bars, always use Mbit/s
+      const downloadMbps = kbpsToMbps(stats.downloadSpeed);
+      const uploadMbps = kbpsToMbps(stats.uploadSpeed);
+      
+      const downloadElement = document.getElementById('download-speed');
+      if (downloadElement) {
+        const decimals = selectedUnit === 'mbs' ? 2 : (selectedUnit === 'kbps' ? 0 : 1);
+        downloadElement.textContent = downloadSpeed.toFixed(decimals);
+      }
+
+      const uploadElement = document.getElementById('upload-speed');
+      if (uploadElement) {
+        const decimals = selectedUnit === 'mbs' ? 2 : (selectedUnit === 'kbps' ? 0 : 1);
+        uploadElement.textContent = uploadSpeed.toFixed(decimals);
+      }
+      
+      // Update unit labels
+      const unitLabel = getUnitLabel(selectedUnit);
+      const downloadUnitLabel = document.getElementById('download-unit-label');
+      const uploadUnitLabel = document.getElementById('upload-unit-label');
+      if (downloadUnitLabel) {
+        downloadUnitLabel.textContent = unitLabel;
+      }
+      if (uploadUnitLabel) {
+        uploadUnitLabel.textContent = unitLabel;
+      }
+      
+      // Update progress bars (always use Mbit/s for calculation)
+      updateProgressBar('download-progress-fill', downloadMbps, maxSpeedMbps);
+      updateProgressBar('upload-progress-fill', uploadMbps, maxSpeedMbps);
+      
+      // Update progress bar visibility based on preference
+      updateProgressBarVisibility();
+    }
+    
+    // Update RAM stats in overlay
+    function updateRAMStats(stats) {
+      const ramUsageElement = document.getElementById('ram-usage');
+      if (ramUsageElement) {
+        if (stats.usage !== null && stats.usage !== undefined) {
+          ramUsageElement.textContent = stats.usage.toFixed(1);
+        } else {
+          ramUsageElement.textContent = '--';
+        }
+      }
+      
+      // Update top memory process name and usage
+      const ramProcessElement = document.getElementById('ram-process');
+      const ramProcessUsageElement = document.getElementById('ram-process-usage');
+      const ramProcessOverlay = document.getElementById('ram-process-overlay');
+      if (ramProcessElement && ramProcessUsageElement && ramProcessOverlay) {
+        if (stats.topProcess !== null && stats.topProcess !== undefined && stats.topProcess.trim() !== '') {
+          ramProcessElement.textContent = stats.topProcess;
+          
+          // Show process memory usage in MB if available
+          if (stats.topProcessUsage !== null && stats.topProcessUsage !== undefined) {
+            ramProcessUsageElement.textContent = '(' + stats.topProcessUsage.toFixed(1) + 'MB)';
+            ramProcessUsageElement.style.display = 'inline';
+          } else {
+            ramProcessUsageElement.style.display = 'none';
+          }
+          
+          ramProcessOverlay.style.display = 'flex';
+        } else {
+          ramProcessElement.textContent = '--';
+          ramProcessUsageElement.textContent = '';
+          ramProcessOverlay.style.display = 'none';
+        }
+      }
+    }
+    
+    // Update CPU stats in overlay
+    function updateCPUStats(stats) {
+      const cpuUsageElement = document.getElementById('cpu-usage');
+      if (cpuUsageElement) {
+        if (stats.usage !== null && stats.usage !== undefined) {
+          cpuUsageElement.textContent = stats.usage.toFixed(1);
+        } else {
+          cpuUsageElement.textContent = '--';
+        }
+      }
+      
+      const cpuTempElement = document.getElementById('cpu-temperature');
+      const cpuTempOverlay = document.getElementById('cpu-temp-overlay');
+      if (cpuTempElement && cpuTempOverlay) {
+        if (stats.temperature !== null && stats.temperature !== undefined) {
+          cpuTempElement.textContent = stats.temperature.toFixed(1);
+          cpuTempOverlay.style.display = 'flex';
+        } else {
+          cpuTempElement.textContent = '--';
+          cpuTempOverlay.style.display = 'none';
+        }
+      }
+      
+      // Update top process name and usage
+      const cpuProcessElement = document.getElementById('cpu-process');
+      const cpuProcessUsageElement = document.getElementById('cpu-process-usage');
+      const cpuProcessOverlay = document.getElementById('cpu-process-overlay');
+      if (cpuProcessElement && cpuProcessUsageElement && cpuProcessOverlay) {
+        if (stats.topProcess !== null && stats.topProcess !== undefined && stats.topProcess.trim() !== '') {
+          cpuProcessElement.textContent = stats.topProcess;
+          
+          // Show process usage percentage if available
+          if (stats.topProcessUsage !== null && stats.topProcessUsage !== undefined) {
+            cpuProcessUsageElement.textContent = '(' + stats.topProcessUsage.toFixed(1) + '%)';
+            cpuProcessUsageElement.style.display = 'inline';
+          } else {
+            cpuProcessUsageElement.style.display = 'none';
+          }
+          
+          cpuProcessOverlay.style.display = 'flex';
+        } else {
+          cpuProcessElement.textContent = '--';
+          cpuProcessUsageElement.textContent = '';
+          cpuProcessOverlay.style.display = 'none';
+        }
+      }
+    }
+
+    // Initialize the overlay
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize Lucide icons
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      
+      // Set initial progress bar visibility
+      updateProgressBarVisibility();
+      
+      // Listen for network stats updates from main process
+      if (window.electronAPI) {
+        window.electronAPI.onNetworkStatsUpdate((stats) => {
+          updateStats(stats);
+        });
+        
+        // Listen for CPU stats updates from main process
+        if (window.electronAPI.onCPUStatsUpdate) {
+          window.electronAPI.onCPUStatsUpdate((stats) => {
+            updateCPUStats(stats);
+          });
+        }
+        
+        // Listen for RAM stats updates from main process
+        if (window.electronAPI.onRAMStatsUpdate) {
+          window.electronAPI.onRAMStatsUpdate((stats) => {
+            updateRAMStats(stats);
+          });
+        }
+      }
+      
+      // Periodically check for progress bar visibility changes
+      // This allows the overlay to update when the setting changes in the stats window
+      setInterval(() => {
+        updateProgressBarVisibility();
+      }, 500); // Check every 500ms
+    });
+  </script>
+</body>
+</html>
+

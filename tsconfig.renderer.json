@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "none",
+    "noEmit": false
+  },
+  "include": ["src/renderer/renderer.ts"],
+  "exclude": []
+}
+

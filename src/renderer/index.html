@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none';">
+  <title>WebSpeed - Network Statistics</title>
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>WebSpeed Monitor</h1>
+      <div class="interface-info">
+        <span class="info-label">Source:</span>
+        <span id="interface-name">Unknown</span>
+        <span id="interface-type" class="badge">Unknown</span>
+      </div>
+      <div class="controls-row">
+        <div class="max-speed-config">
+          <label for="max-speed-input">Max Speed:</label>
+          <input type="number" id="max-speed-input" min="1" max="10000" value="100" step="1">
+          <span class="max-speed-unit">Mbit/s</span>
+        </div>
+        <div class="unit-selector">
+          <label for="unit-select">Unit:</label>
+          <select id="unit-select">
+            <option value="kbps">kbps</option>
+            <option value="mbps" selected>Mbit/s</option>
+            <option value="mbs">MB/s</option>
+          </select>
+        </div>
+        <div class="progress-toggle">
+          <label>
+            <input type="checkbox" id="show-progress" checked>
+            Show Progress Bars
+          </label>
+        </div>
+        <div class="cpu-toggle">
+          <label>
+            <input type="checkbox" id="show-cpu">
+            Show CPU Stats
+          </label>
+        </div>
+        <button id="refresh-btn" class="refresh-button">Refresh</button>
+      </div>
+    </header>
+    
+    <main>
+      <div class="stats-grid">
+        <div class="stat-card download">
+          <div class="stat-icon">↓</div>
+          <div class="stat-content">
+            <div class="stat-label">Download</div>
+            <div class="stat-value" id="download-speed">0.00</div>
+            <div class="stat-unit" id="download-unit">Mbit/s</div>
+            <div class="progress-bar-container" id="download-progress-container">
+              <div class="progress-bar" id="download-progress">
+                <div class="progress-fill" id="download-progress-fill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card upload">
+          <div class="stat-icon">↑</div>
+          <div class="stat-content">
+            <div class="stat-label">Upload</div>
+            <div class="stat-value" id="upload-speed">0.00</div>
+            <div class="stat-unit" id="upload-unit">Mbit/s</div>
+            <div class="progress-bar-container" id="upload-progress-container">
+              <div class="progress-bar" id="upload-progress">
+                <div class="progress-fill" id="upload-progress-fill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card cpu" id="cpu-stat-card" style="display: none;">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-content">
+            <div class="stat-label">CPU Usage</div>
+            <div class="stat-value" id="cpu-usage">--</div>
+            <div class="stat-unit" id="cpu-usage-unit">%</div>
+            <div class="cpu-temp" id="cpu-temp-container" style="display: none;">
+              <div class="stat-label" style="margin-top: 8px; margin-bottom: 4px;">Temperature</div>
+              <div class="stat-value" style="font-size: 24px;" id="cpu-temperature">--</div>
+              <div class="stat-unit">°C</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="details-section">
+        <h2>Details</h2>
+        <div class="detail-row">
+          <span class="detail-label">Total Downloaded:</span>
+          <span class="detail-value" id="total-download">0 B</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Total Uploaded:</span>
+          <span class="detail-value" id="total-upload">0 B</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Monitoring Since:</span>
+          <span class="detail-value" id="monitoring-since">--</span>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <script src="renderer.js"></script>
+</body>
+</html>
+

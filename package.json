@@ -1,0 +1,73 @@
+{
+  "name": "webspeed",
+  "version": "1.0.0",
+  "description": "Windows Network Speed Monitor - Real-time upload/download speed tracker",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "node scripts/generate-icon.js && tsc && node scripts/build-renderer.js && npm run copy:assets",
+    "copy:assets": "node scripts/copy-assets.js",
+    "start": "npm run build && electron .",
+    "dev": "tsc && node scripts/build-renderer.js && npm run copy:assets && electron .",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && node scripts/build-win.js",
+    "clean": "node -e \"require('fs').rmSync('release', {recursive:true,force:true}); require('fs').rmSync('dist', {recursive:true,force:true})\" 2>/dev/null || echo Cleaned",
+    "clean:release": "node -e \"require('fs').rmSync('release', {recursive:true,force:true})\" 2>/dev/null || echo Cleaned"
+  },
+  "keywords": [
+    "network",
+    "speed",
+    "monitor",
+    "windows",
+    "tray"
+  ],
+  "author": "WebSpeed Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "systeminformation": "^5.21.20"
+  },
+  "build": {
+    "appId": "com.webspeed.app",
+    "productName": "WebSpeed",
+    "compression": "maximum",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
