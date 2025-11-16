@@ -44,4 +44,25 @@ iconFiles.forEach(file => {
   }
 });
 
+// Copy JS files (like Lucide)
+const distJs = path.join(__dirname, '../dist/assets/js');
+if (!fs.existsSync(distJs)) {
+  fs.mkdirSync(distJs, { recursive: true });
+}
+
+const jsFiles = ['lucide.js'];
+const assetsJs = path.join(__dirname, '../assets/js');
+
+jsFiles.forEach(file => {
+  const srcPath = path.join(assetsJs, file);
+  const destPath = path.join(distJs, file);
+  
+  if (fs.existsSync(srcPath)) {
+    fs.copyFileSync(srcPath, destPath);
+    console.log(`Copied assets/js/${file} to dist/assets/js/`);
+  } else {
+    console.warn(`Warning: assets/js/${file} not found`);
+  }
+});
+
 

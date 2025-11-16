@@ -11,6 +11,9 @@ declare global {
       requestStatsUpdate?: () => void;
       removeAllListeners: (channel: string) => void;
     };
+    lucide?: {
+      createIcons: () => void;
+    };
   }
 }
 
@@ -306,6 +309,72 @@ function updateCPUStats(stats: CPUStats): void {
       cpuTempContainer.style.display = 'none';
     }
   }
+  
+  // Update top CPU process
+  const cpuProcessContainer = document.getElementById('cpu-process-container');
+  const cpuProcessName = document.getElementById('cpu-process-name');
+  const cpuProcessUsage = document.getElementById('cpu-process-usage');
+  if (cpuProcessContainer && cpuProcessName && cpuProcessUsage) {
+    if (stats.topProcess !== null && stats.topProcess !== undefined && stats.topProcess.trim() !== '') {
+      cpuProcessName.textContent = stats.topProcess;
+      
+      if (stats.topProcessUsage !== null && stats.topProcessUsage !== undefined) {
+        cpuProcessUsage.textContent = `CPU: ${stats.topProcessUsage.toFixed(1)}%`;
+      } else {
+        cpuProcessUsage.textContent = 'CPU: --';
+      }
+      
+      cpuProcessContainer.style.display = 'block';
+    } else {
+      cpuProcessName.textContent = '--';
+      cpuProcessUsage.textContent = 'CPU: --';
+      cpuProcessContainer.style.display = 'none';
+    }
+  }
+}
+
+// Update the UI with RAM stats
+function updateRAMStats(stats: RAMStats): void {
+  // Validate stats object
+  if (!stats) {
+    return;
+  }
+  
+  // Update RAM usage
+  const ramUsageElement = document.getElementById('ram-usage');
+  if (ramUsageElement) {
+    if (stats.usage !== null && stats.usage !== undefined) {
+      ramUsageElement.textContent = stats.usage.toFixed(1);
+      ramUsageElement.classList.add('updating');
+      setTimeout(() => {
+        ramUsageElement.classList.remove('updating');
+      }, 500);
+    } else {
+      ramUsageElement.textContent = '--';
+    }
+  }
+  
+  // Update top RAM process
+  const ramProcessContainer = document.getElementById('ram-process-container');
+  const ramProcessName = document.getElementById('ram-process-name');
+  const ramProcessUsage = document.getElementById('ram-process-usage');
+  if (ramProcessContainer && ramProcessName && ramProcessUsage) {
+    if (stats.topProcess !== null && stats.topProcess !== undefined && stats.topProcess.trim() !== '') {
+      ramProcessName.textContent = stats.topProcess;
+      
+      if (stats.topProcessUsage !== null && stats.topProcessUsage !== undefined) {
+        ramProcessUsage.textContent = `Memory: ${stats.topProcessUsage.toFixed(1)} MB`;
+      } else {
+        ramProcessUsage.textContent = 'Memory: --';
+      }
+      
+      ramProcessContainer.style.display = 'block';
+    } else {
+      ramProcessName.textContent = '--';
+      ramProcessUsage.textContent = 'Memory: --';
+      ramProcessContainer.style.display = 'none';
+    }
+  }
 }
 
 // Initialize the renderer
@@ -315,6 +384,11 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('  download-speed:', !!document.getElementById('download-speed'));
   console.log('  upload-speed:', !!document.getElementById('upload-speed'));
   console.log('  window.electronAPI:', !!window.electronAPI);
+  
+  // Initialize Lucide icons immediately
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
   
   // Load max speed from localStorage
   const maxSpeedInput = document.getElementById('max-speed-input') as HTMLInputElement;
@@ -386,9 +460,50 @@ document.addEventListener('DOMContentLoaded', () => {
     cpuStatCard.style.display = showCPUCheckbox.checked ? 'flex' : 'none';
     
     showCPUCheckbox.addEventListener('change', () => {
-      localStorage.setItem('webspeed-show-cpu', showCPUCheckbox.checked.toString());
-      // Update visibility immediately
-      cpuStatCard.style.display = showCPUCheckbox.checked ? 'flex' : 'none';
+      const isChecked = showCPUCheckbox.checked;
+      localStorage.setItem('webspeed-show-cpu', isChecked.toString());
+      // Update visibility in stats window immediately
+      cpuStatCard.style.display = isChecked ? 'flex' : 'none';
+      // Reinitialize Lucide icons when card is shown
+      if (isChecked && window.lucide) {
+        // Use setTimeout to ensure DOM is updated first
+        setTimeout(() => {
+          window.lucide?.createIcons();
+        }, 10);
+      }
+      // Update taskbar overlay visibility (it reads from localStorage)
+    });
+  }
+  
+  // Load RAM stats visibility preference
+  const showRAMCheckbox = document.getElementById('show-ram') as HTMLInputElement;
+  const ramStatCard = document.getElementById('ram-stat-card');
+  if (showRAMCheckbox && ramStatCard) {
+    const stored = localStorage.getItem('webspeed-show-ram');
+    if (stored !== null) {
+      showRAMCheckbox.checked = stored === 'true';
+    } else {
+      // Default to showing RAM stats
+      showRAMCheckbox.checked = true;
+      localStorage.setItem('webspeed-show-ram', 'true');
+    }
+    
+    // Set initial visibility
+    ramStatCard.style.display = showRAMCheckbox.checked ? 'flex' : 'none';
+    
+    showRAMCheckbox.addEventListener('change', () => {
+      const isChecked = showRAMCheckbox.checked;
+      localStorage.setItem('webspeed-show-ram', isChecked.toString());
+      // Update visibility in stats window immediately
+      ramStatCard.style.display = isChecked ? 'flex' : 'none';
+      // Reinitialize Lucide icons when card is shown
+      if (isChecked && window.lucide) {
+        // Use setTimeout to ensure DOM is updated first
+        setTimeout(() => {
+          window.lucide?.createIcons();
+        }, 10);
+      }
+      // Update taskbar overlay visibility (it reads from localStorage)
     });
   }
   
@@ -467,6 +582,16 @@ document.addEventListener('DOMContentLoaded', () => {
       updateCPUStats(stats);
     });
     console.log('CPU stats listener set up successfully');
+    
+    // Listen for RAM stats updates from main process
+    if (window.electronAPI.onRAMStatsUpdate) {
+      console.log('Setting up RAM stats listener...');
+      window.electronAPI.onRAMStatsUpdate((stats: RAMStats) => {
+        console.log('Received RAM stats update:', stats);
+        updateRAMStats(stats);
+      });
+      console.log('RAM stats listener set up successfully');
+    }
   } else {
     console.error('window.electronAPI is not available!');
   }

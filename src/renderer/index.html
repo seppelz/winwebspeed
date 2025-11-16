@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none';">
+  <!-- CSP is set via HTTP header in main.ts, meta tag removed to avoid conflicts -->
   <title>WebSpeed - Network Statistics</title>
   <link rel="icon" type="image/png" href="../assets/favicon.png">
   <link rel="stylesheet" href="styles.css">
+  <script src="../assets/js/lucide.js"></script>
 </head>
 <body>
   <div class="container">
@@ -43,6 +44,12 @@
             Show CPU Stats
           </label>
         </div>
+        <div class="ram-toggle">
+          <label>
+            <input type="checkbox" id="show-ram">
+            Show RAM Stats
+          </label>
+        </div>
         <button id="refresh-btn" class="refresh-button">Refresh</button>
       </div>
     </header>
@@ -50,7 +57,9 @@
     <main>
       <div class="stats-grid">
         <div class="stat-card download">
-          <div class="stat-icon">↓</div>
+          <div class="stat-icon">
+            <i data-lucide="download"></i>
+          </div>
           <div class="stat-content">
             <div class="stat-label">Download</div>
             <div class="stat-value" id="download-speed">0.00</div>
@@ -64,7 +73,9 @@
         </div>
         
         <div class="stat-card upload">
-          <div class="stat-icon">↑</div>
+          <div class="stat-icon">
+            <i data-lucide="upload"></i>
+          </div>
           <div class="stat-content">
             <div class="stat-label">Upload</div>
             <div class="stat-value" id="upload-speed">0.00</div>
@@ -78,7 +89,9 @@
         </div>
         
         <div class="stat-card cpu" id="cpu-stat-card" style="display: none;">
-          <div class="stat-icon">⚡</div>
+          <div class="stat-icon">
+            <i data-lucide="cpu"></i>
+          </div>
           <div class="stat-content">
             <div class="stat-label">CPU Usage</div>
             <div class="stat-value" id="cpu-usage">--</div>
@@ -87,6 +100,27 @@
               <div class="stat-label" style="margin-top: 8px; margin-bottom: 4px;">Temperature</div>
               <div class="stat-value" style="font-size: 24px;" id="cpu-temperature">--</div>
               <div class="stat-unit">°C</div>
+            </div>
+            <div class="process-info" id="cpu-process-container" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0, 0, 0, 0.1);">
+              <div class="stat-label" style="margin-bottom: 6px; font-size: 12px; opacity: 0.8;">Top Process</div>
+              <div class="process-name" id="cpu-process-name" style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">--</div>
+              <div class="process-usage" id="cpu-process-usage" style="font-size: 12px; opacity: 0.9;">--</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card ram" id="ram-stat-card" style="display: none;">
+          <div class="stat-icon">
+            <i data-lucide="hard-drive"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">RAM Usage</div>
+            <div class="stat-value" id="ram-usage">--</div>
+            <div class="stat-unit" id="ram-usage-unit">%</div>
+            <div class="process-info" id="ram-process-container" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0, 0, 0, 0.1);">
+              <div class="stat-label" style="margin-bottom: 6px; font-size: 12px; opacity: 0.8;">Top Process</div>
+              <div class="process-name" id="ram-process-name" style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">--</div>
+              <div class="process-usage" id="ram-process-usage" style="font-size: 12px; opacity: 0.9;">--</div>
             </div>
           </div>
         </div>
@@ -111,6 +145,28 @@
   </div>
   
   <script src="renderer.js"></script>
+  <script>
+    // Initialize Lucide icons after script loads
+    function initIcons() {
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+      } else if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+      } else {
+        // Retry after a short delay if script hasn't loaded yet
+        setTimeout(initIcons, 100);
+      }
+    }
+    
+    // Wait for script to load, then initialize
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initIcons, 50);
+      });
+    } else {
+      setTimeout(initIcons, 50);
+    }
+  </script>
 </body>
 </html>
 

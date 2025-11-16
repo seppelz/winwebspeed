@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'none'; font-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none';">
+  <!-- CSP is set via HTTP header in taskbar-overlay.ts, meta tag removed to avoid conflicts -->
   <title>WebSpeed Taskbar Overlay</title>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="../assets/js/lucide.js"></script>
   <style>
     * {
       margin: 0;
@@ -25,6 +25,7 @@
       margin: 0;
       -webkit-app-region: no-drag;
       cursor: move;
+      overflow: hidden;
     }
 
     .speed-container {
@@ -37,6 +38,31 @@
       -webkit-app-region: drag;
       cursor: move;
       min-width: 500px;
+      overflow: visible;
+      max-height: 100%;
+    }
+    
+    .speed-container.compact {
+      min-width: 250px;
+      gap: 12px;
+      padding: 4px 8px;
+    }
+    
+    .speed-container.compact .speed-item {
+      gap: 2px;
+    }
+    
+    .speed-container.compact .speed-item-header {
+      font-size: 12px;
+      gap: 3px;
+    }
+    
+    .speed-container.compact .speed-value {
+      font-size: 13px;
+    }
+    
+    .speed-container.compact .speed-label {
+      font-size: 10px;
     }
     
     .cpu-info-overlay {
@@ -44,18 +70,22 @@
       flex-direction: column;
       gap: 2px;
       margin-top: 2px;
+      overflow: visible;
     }
     
     .cpu-temp-overlay {
       display: flex;
       align-items: center;
       gap: 2px;
+      overflow: visible;
     }
     
     .cpu-process-overlay {
       display: flex;
       align-items: center;
       gap: 4px;
+      overflow: visible;
+      flex-wrap: nowrap;
     }
     
     .ram-info-overlay {
@@ -63,12 +93,15 @@
       flex-direction: column;
       gap: 2px;
       margin-top: 2px;
+      overflow: visible;
     }
     
     .ram-process-overlay {
       display: flex;
       align-items: center;
       gap: 4px;
+      overflow: visible;
+      flex-wrap: nowrap;
     }
 
     .speed-item {
@@ -78,6 +111,13 @@
       gap: 4px;
       flex: 1;
       min-width: 0;
+      flex-shrink: 0;
+    }
+    
+    .speed-item.cpu,
+    .speed-item.ram {
+      max-height: none;
+      overflow: visible;
     }
 
     .speed-item-header {
@@ -94,6 +134,16 @@
       font-size: 14px;
       color: #ffffff;
     }
+    
+    .item-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #ffffff;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-right: 2px;
+    }
 
     .speed-value {
       color: #ffffff;
@@ -108,7 +158,7 @@
     }
 
     .progress-bar-container {
-      width: 100%;
+      width: fit-content;
       margin-top: 2px;
     }
 
@@ -117,12 +167,18 @@
     }
 
     .progress-bar {
-      width: 100%;
+      width: 95px;
       height: 6px;
       background: rgba(255, 255, 255, 0.2);
       border-radius: 3px;
       overflow: hidden;
       position: relative;
+      transition: height 0.3s ease;
+    }
+    
+    .speed-container.compact .progress-bar {
+      height: 3px;
+      width: 75px;
     }
 
     .progress-fill {
@@ -140,6 +196,7 @@
     <div class="speed-item download">
       <div class="speed-item-header">
         <span class="arrow">↓</span>
+        <span class="item-label">DL</span>
         <span class="speed-value" id="download-speed">0</span>
         <span class="speed-label" id="download-unit-label">Mbit/s</span>
       </div>
@@ -152,6 +209,7 @@
     <div class="speed-item upload">
       <div class="speed-item-header">
         <span class="arrow">↑</span>
+        <span class="item-label">UL</span>
         <span class="speed-value" id="upload-speed">0</span>
         <span class="speed-label" id="upload-unit-label">Mbit/s</span>
       </div>
@@ -163,7 +221,7 @@
     </div>
     <div class="speed-item cpu">
       <div class="speed-item-header">
-        <i data-lucide="cpu" class="arrow" style="width: 14px; height: 14px;"></i>
+        <span class="item-label">CPU</span>
         <span class="speed-value" id="cpu-usage">--</span>
         <span class="speed-label">%</span>
       </div>
@@ -180,7 +238,7 @@
     </div>
     <div class="speed-item ram">
       <div class="speed-item-header">
-        <i data-lucide="hard-drive" class="arrow" style="width: 14px; height: 14px;"></i>
+        <span class="item-label">RAM</span>
         <span class="speed-value" id="ram-usage">--</span>
         <span class="speed-label">%</span>
       </div>
@@ -367,6 +425,53 @@
           ramProcessOverlay.style.display = 'none';
         }
       }
+      
+      // Update visibility based on preference
+      updateCPUAndRAMVisibility();
+    }
+    
+    // Get CPU visibility from localStorage
+    function getShowCPU() {
+      const stored = localStorage.getItem('webspeed-show-cpu');
+      if (stored !== null) {
+        return stored === 'true';
+      }
+      return false; // Default to hidden
+    }
+    
+    // Get RAM visibility from localStorage
+    function getShowRAM() {
+      const stored = localStorage.getItem('webspeed-show-ram');
+      if (stored !== null) {
+        return stored === 'true';
+      }
+      return true; // Default to showing RAM
+    }
+    
+    // Update CPU and RAM visibility in overlay
+    function updateCPUAndRAMVisibility() {
+      const showCPU = getShowCPU();
+      const showRAM = getShowRAM();
+      
+      const cpuItem = document.querySelector('.speed-item.cpu');
+      const ramItem = document.querySelector('.speed-item.ram');
+      const container = document.querySelector('.speed-container');
+      
+      if (cpuItem) {
+        cpuItem.style.display = showCPU ? 'flex' : 'none';
+      }
+      if (ramItem) {
+        ramItem.style.display = showRAM ? 'flex' : 'none';
+      }
+      
+      // Apply compact mode when only progress bars are shown (CPU and RAM hidden)
+      if (container) {
+        if (!showCPU && !showRAM) {
+          container.classList.add('compact');
+        } else {
+          container.classList.remove('compact');
+        }
+      }
     }
     
     // Update CPU stats in overlay
@@ -415,6 +520,9 @@
           cpuProcessOverlay.style.display = 'none';
         }
       }
+      
+      // Update visibility based on preference
+      updateCPUAndRAMVisibility();
     }
 
     // Initialize the overlay
@@ -426,6 +534,9 @@
       
       // Set initial progress bar visibility
       updateProgressBarVisibility();
+      
+      // Set initial CPU and RAM visibility
+      updateCPUAndRAMVisibility();
       
       // Listen for network stats updates from main process
       if (window.electronAPI) {
@@ -448,10 +559,11 @@
         }
       }
       
-      // Periodically check for progress bar visibility changes
+      // Periodically check for visibility changes
       // This allows the overlay to update when the setting changes in the stats window
       setInterval(() => {
         updateProgressBarVisibility();
+        updateCPUAndRAMVisibility();
       }, 500); // Check every 500ms
     });
   </script>

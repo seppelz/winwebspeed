@@ -106,14 +106,16 @@ header h1 {
 }
 
 .progress-toggle,
-.cpu-toggle {
+.cpu-toggle,
+.ram-toggle {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .progress-toggle label,
-.cpu-toggle label {
+.cpu-toggle label,
+.ram-toggle label {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -122,7 +124,8 @@ header h1 {
 }
 
 .progress-toggle input[type="checkbox"],
-.cpu-toggle input[type="checkbox"] {
+.cpu-toggle input[type="checkbox"],
+.ram-toggle input[type="checkbox"] {
   cursor: pointer;
   width: 18px;
   height: 18px;
@@ -216,6 +219,11 @@ main {
   grid-column: 1 / -1; /* Span full width */
 }
 
+.stat-card.ram {
+  border-left: 4px solid #00bcd4;
+  grid-column: 1 / -1; /* Span full width */
+}
+
 .stat-icon {
   font-size: 36px;
   width: 60px;
@@ -226,24 +234,84 @@ main {
   background: white;
   border-radius: 12px;
   font-weight: bold;
+  flex-shrink: 0;
+}
+
+.stat-icon i {
+  width: 36px;
+  height: 36px;
+  stroke-width: 2;
+  display: block;
+}
+
+.stat-icon svg {
+  width: 36px;
+  height: 36px;
+  display: block;
 }
 
 .stat-card.download .stat-icon {
   color: #4caf50;
 }
 
+.stat-card.download .stat-icon i,
+.stat-card.download .stat-icon svg {
+  color: #4caf50;
+  stroke: #4caf50;
+}
+
 .stat-card.upload .stat-icon {
   color: #2196f3;
+}
+
+.stat-card.upload .stat-icon i,
+.stat-card.upload .stat-icon svg {
+  color: #2196f3;
+  stroke: #2196f3;
 }
 
 .stat-card.cpu .stat-icon {
   color: #ff9800;
 }
 
+.stat-card.cpu .stat-icon i,
+.stat-card.cpu .stat-icon svg {
+  color: #ff9800;
+  stroke: #ff9800;
+}
+
+.stat-card.ram .stat-icon {
+  color: #00bcd4;
+}
+
+.stat-card.ram .stat-icon i,
+.stat-card.ram .stat-icon svg {
+  color: #00bcd4;
+  stroke: #00bcd4;
+}
+
 .cpu-temp {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.process-info {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.process-name {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.process-usage {
+  color: #4a5568;
+  opacity: 1;
 }
 
 .stat-content {
@@ -266,6 +334,7 @@ main {
   color: #333;
   line-height: 1;
   margin-bottom: 4px;
+  display: inline-block;
 }
 
 .stat-unit {
@@ -274,6 +343,21 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
+  display: inline-block;
+  margin-left: 4px;
+}
+
+/* For CPU and RAM, show value and unit on same line */
+.stat-card.cpu .stat-content > .stat-value,
+.stat-card.ram .stat-content > .stat-value {
+  display: inline;
+}
+
+.stat-card.cpu .stat-content > .stat-unit,
+.stat-card.ram .stat-content > .stat-unit {
+  display: inline;
+  margin-left: 4px;
+  margin-bottom: 0;
 }
 
 .progress-bar-container {

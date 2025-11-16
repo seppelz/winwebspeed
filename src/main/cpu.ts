@@ -17,7 +17,17 @@ export class CPUMonitor {
     
     this.isRunning = true;
     
-    // Get initial stats immediately
+    // Make an initial baseline call to currentLoad() for accurate measurements
+    // The first call establishes a baseline, subsequent calls will be more accurate
+    try {
+      await si.currentLoad().catch(() => null);
+      // Wait a short moment for the baseline to be established
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error) {
+      console.error('Error establishing CPU baseline:', error);
+    }
+    
+    // Get initial stats after baseline is established
     await this.updateStats();
     
     // Start monitoring loop
@@ -146,14 +156,19 @@ export class CPUMonitor {
         if (processes && processes.list && processes.list.length > 0 && memInfo && memInfo.total) {
           const totalMemoryMB = memInfo.total / (1024 * 1024); // Total memory in MB
           
-          // Sort processes by memory usage (descending)
+          // Sort processes by memory usage (descending), excluding system memory management processes
           const sortedMemoryProcesses = processes.list
             .filter((p: any) => {
               // Filter out processes with no memory usage
               if (p.mem === null || p.mem === undefined || p.mem <= 0) {
                 return false;
               }
-              return true;
+              // Filter out Memory Compress and other Windows memory management processes (case-insensitive)
+              const processName = (p.name || p.command || '').toLowerCase();
+              return !processName.includes('memory compress') &&
+                     !processName.includes('memorycompression') &&
+                     !processName.includes('memory compression') &&
+                     processName !== 'memcompression';
             })
             .sort((a: any, b: any) => (b.mem || 0) - (a.mem || 0));
           

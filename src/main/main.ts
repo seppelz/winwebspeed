@@ -38,23 +38,28 @@ function createWindow(): void {
   
   // Set CSP header via session for additional protection
   statsWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self'; " +
-          "script-src 'self'; " +
-          "style-src 'self' 'unsafe-inline'; " +
-          "img-src 'self' data:; " +
-          "font-src 'self'; " +
-          "connect-src 'none'; " +
-          "object-src 'none'; " +
-          "base-uri 'self'; " +
-          "form-action 'none'; " +
-          "frame-ancestors 'none'"
-        ]
-      }
-    });
+    // Only apply CSP to the stats window HTML file
+    if (details.url && details.url.startsWith('file://')) {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self'; " +
+            "script-src 'self' 'unsafe-inline'; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "img-src 'self' data: file:; " +
+            "font-src 'self'; " +
+            "connect-src 'none'; " +
+            "object-src 'none'; " +
+            "base-uri 'self'; " +
+            "form-action 'none'; " +
+            "frame-ancestors 'none'"
+          ]
+        }
+      });
+    } else {
+      callback({ responseHeaders: details.responseHeaders });
+    }
   });
 
   // Load the HTML file

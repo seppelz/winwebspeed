@@ -22,7 +22,7 @@ export class TaskbarOverlay {
     // Position at bottom right, just above taskbar, aligned with system tray
     // Account for system tray icons area (usually ~200-250px from right edge)
     const overlayWidth = 520; // Width for horizontal layout with progress bars, CPU, and RAM stats
-    const overlayHeight = 50; // Height for horizontal layout with progress bars
+    const overlayHeight = 75; // Height to accommodate all content (progress bars, CPU, RAM with process info) without scrollbar
     const systemTrayArea = 250; // Approximate space for system tray icons
     const overlayX = x + width - systemTrayArea - overlayWidth - 5; // Position before system tray
     const overlayY = y + height - overlayHeight - taskbarHeight - 2; // 2px above taskbar
@@ -59,8 +59,8 @@ export class TaskbarOverlay {
             "default-src 'self'; " +
             "script-src 'self' 'unsafe-inline'; " +
             "style-src 'self' 'unsafe-inline'; " +
-            "img-src 'none'; " +
-            "font-src 'none'; " +
+            "img-src 'self' data: file:; " +
+            "font-src 'self'; " +
             "connect-src 'none'; " +
             "object-src 'none'; " +
             "base-uri 'self'; " +
