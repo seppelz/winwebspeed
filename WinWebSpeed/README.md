@@ -16,25 +16,25 @@
 
 ---
 
-## ✨ Features
+## Features
 
-- **📊 Real-time Network Monitoring** - Live download/upload speeds with visual progress bars
-- **💻 CPU & RAM Usage** - Monitor system resources with top process identification
-- **🎨 Customizable Themes** - 6 built-in themes (Orange, Blue, Green, Purple, Red, Cyan)
-- **📏 Flexible Units** - Switch between Bytes/s (KB/s, MB/s) and Bits/s (Kbit/s, Mbit/s)
-- **⚙️ Configurable Max Speed** - Set custom max speed for progress bar scaling (10-1000 Mbit/s)
-- **🔔 Update Notifications** - Automatic update checking with GitHub Releases integration
-- **🚀 Run at Startup** - Optional auto-start with Windows
-- **📱 System Tray Integration** - Minimize to tray, right-click for options
-- **🪟 Always on Top** - Transparent overlay window that stays visible
-- **🖱️ Drag to Move** - Reposition the window anywhere on your screen
-- **💾 Settings Persistence** - All preferences saved automatically
+- ** Real-time Network Monitoring** - Live download/upload speeds with visual progress bars
+- ** CPU & RAM Usage** - Monitor system resources with top process identification
+- ** Customizable Themes** - 6 built-in themes (Orange, Blue, Green, Purple, Red, Cyan)
+- ** Flexible Units** - Switch between Bytes/s (KB/s, MB/s) and Bits/s (Kbit/s, Mbit/s)
+- ** Configurable Max Speed** - Set custom max speed for progress bar scaling (10-1000 Mbit/s)
+- ** Update Notifications** - Automatic update checking with GitHub Releases integration
+- ** Run at Startup** - Optional auto-start with Windows
+- ** System Tray Integration** - Minimize to tray, right-click for options
+- ** Always on Top** - Transparent overlay window that stays visible
+- ** Drag to Move** - Reposition the window anywhere on your screen
+- ** Settings Persistence** - All preferences saved automatically
 
-## 📸 Screenshots
+##  Screenshots
 
 *Screenshots coming soon - add your own!*
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Download
 
@@ -48,12 +48,12 @@
 winget install seppelz.WinWebSpeed
 ```
 
-## 📋 Requirements
+##  Requirements
 
 - **Windows 10** or **Windows 11**
 - **.NET 8.0 Runtime** (usually pre-installed on Windows 11, or [download here](https://dotnet.microsoft.com/download/dotnet/8.0))
 
-## 🎮 Usage
+##  Usage
 
 1. **Launch** - Run `WinWebSpeed.exe`
 2. **Monitor** - The overlay window shows real-time network speeds, CPU, and RAM usage
@@ -68,7 +68,7 @@ winget install seppelz.WinWebSpeed
 4. **Move** - Click and drag the window to reposition it
 5. **Minimize** - Click the X to minimize to system tray
 
-## 🛠️ Building from Source
+##  Building from Source
 
 ### Prerequisites
 
@@ -94,7 +94,7 @@ dotnet publish --configuration Release --runtime win-x64 --self-contained false 
 
 The executable will be in `bin/Release/net8.0-windows/win-x64/publish/WinWebSpeed.exe`
 
-## 🎨 Customization
+##  Customization
 
 ### Themes
 
@@ -123,35 +123,26 @@ Configure the maximum speed for progress bar scaling:
 
 Set via: System Tray → Max Speed
 
-## 🔧 Technical Details
+##  Technical Details
 
 - **Language**: C# (.NET 8.0)
 - **Framework**: WPF (Windows Presentation Foundation)
-- **Size**: ~1.8 MB (single-file executable)
+- **Size**: ~2.0 MB (single-file executable)
 - **Architecture**: Native Windows application
 - **Update System**: GitHub Releases API integration
 
-## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📝 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - Built with [.NET](https://dotnet.microsoft.com/)
 - Icons and UI inspired by modern design principles
 - Thanks to all contributors and users!
 
-## 📞 Support
+##  Support
 
 - **Website**: [seppelz.github.io/winwebspeed](https://seppelz.github.io/winwebspeed)
 - **Issues**: [GitHub Issues](https://github.com/seppelz/winwebspeed/issues)
@@ -161,7 +152,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-Made with ❤️ by [seppelz](https://github.com/seppelz)
+Made by [seppelz](https://github.com/seppelz)
 
 ⭐ Star this repo if you find it useful!
 
