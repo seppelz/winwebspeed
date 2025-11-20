@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using System.Windows.Media;
 using Microsoft.Win32;
+using System.Threading.Tasks;
 using WinForms = System.Windows.Forms;
 
 namespace WinWebSpeed;
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
     private Theme _currentTheme;
     private int _maxSpeed = 100;
     private const string RegistryKeyName = "WinWebSpeed";
+    private string? _pendingUpdateUrl;
 
     // CPU & RAM Counters
     private System.Diagnostics.PerformanceCounter? _cpuCounter;
@@ -154,6 +156,18 @@ public partial class MainWindow : Window
 
         _notifyIcon.Visible = true;
         _notifyIcon.Text = "WinWebSpeed";
+        _notifyIcon.BalloonTipClicked += (s, e) =>
+        {
+            if (_pendingUpdateUrl != null)
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = _pendingUpdateUrl,
+                    UseShellExecute = true
+                });
+                _pendingUpdateUrl = null;
+            }
+        };
 
         var contextMenu = new WinForms.ContextMenuStrip();
 
@@ -206,6 +220,19 @@ public partial class MainWindow : Window
         startupItem.Checked = _settings.RunAtStartup;
         startupItem.Name = "startupItem";
         contextMenu.Items.Add(startupItem);
+
+        contextMenu.Items.Add(new WinForms.ToolStripSeparator());
+
+        // Check for Updates
+        var updateItem = new WinForms.ToolStripMenuItem("Check for Updates", null, (s, e) => CheckForUpdates(true));
+        updateItem.Name = "updateItem";
+        contextMenu.Items.Add(updateItem);
+
+        // Enable/Disable Update Checks
+        var autoUpdateItem = new WinForms.ToolStripMenuItem("Auto-check for Updates", null, (s, e) => ToggleAutoUpdate());
+        autoUpdateItem.Checked = _settings.CheckForUpdates;
+        autoUpdateItem.Name = "autoUpdateItem";
+        contextMenu.Items.Add(autoUpdateItem);
 
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
 
@@ -370,6 +397,90 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ToggleAutoUpdate()
+    {
+        _settings.CheckForUpdates = !_settings.CheckForUpdates;
+        _settings.Save();
+        
+        if (_notifyIcon?.ContextMenuStrip != null)
+        {
+            var autoUpdateItem = _notifyIcon.ContextMenuStrip.Items["autoUpdateItem"] as WinForms.ToolStripMenuItem;
+            if (autoUpdateItem != null)
+            {
+                autoUpdateItem.Checked = _settings.CheckForUpdates;
+            }
+        }
+    }
+
+    private async void CheckForUpdates(bool showNoUpdateMessage)
+    {
+        try
+        {
+            // Get current version from assembly
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            var currentVersion = version != null 
+                ? (version.Build >= 0 
+                    ? $"{version.Major}.{version.Minor}.{version.Build}" 
+                    : $"{version.Major}.{version.Minor}")
+                : "1.0.0";
+
+            var updateInfo = await UpdateChecker.CheckForUpdatesAsync(currentVersion);
+            
+            if (updateInfo == null)
+            {
+                if (showNoUpdateMessage)
+                {
+                    _notifyIcon?.ShowBalloonTip(5000, "WinWebSpeed", "Unable to check for updates. Please check your internet connection.", WinForms.ToolTipIcon.Info);
+                }
+                return;
+            }
+
+            _settings.LastUpdateCheck = DateTime.Now;
+            _settings.Save();
+
+            if (updateInfo.IsNewer)
+            {
+                _pendingUpdateUrl = updateInfo.DownloadUrl;
+
+                // Show notification
+                _notifyIcon?.ShowBalloonTip(10000, "Update Available", 
+                    $"WinWebSpeed {updateInfo.Version} is available! Click to download.", 
+                    WinForms.ToolTipIcon.Info);
+
+                // Show message box with option to download
+                var result = MessageBox.Show(
+                    $"A new version of WinWebSpeed is available!\n\n" +
+                    $"Current version: {currentVersion}\n" +
+                    $"Latest version: {updateInfo.Version}\n\n" +
+                    $"Would you like to download it now?",
+                    "Update Available",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                if (result == MessageBoxResult.Yes && _pendingUpdateUrl != null)
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = _pendingUpdateUrl,
+                        UseShellExecute = true
+                    });
+                    _pendingUpdateUrl = null;
+                }
+            }
+            else if (showNoUpdateMessage)
+            {
+                _notifyIcon?.ShowBalloonTip(3000, "WinWebSpeed", "You are using the latest version.", WinForms.ToolTipIcon.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (showNoUpdateMessage)
+            {
+                _notifyIcon?.ShowBalloonTip(5000, "WinWebSpeed", "Error checking for updates.", WinForms.ToolTipIcon.Warning);
+            }
+        }
+    }
+
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         // Find active network interface
@@ -384,6 +495,17 @@ public partial class MainWindow : Window
         spCpu.Visibility = _settings.ShowCpu ? Visibility.Visible : Visibility.Collapsed;
         spRam.Visibility = _settings.ShowRam ? Visibility.Visible : Visibility.Collapsed;
         UpdateWindowWidth();
+
+        // Check for updates on startup (once per day if enabled)
+        if (_settings.CheckForUpdates)
+        {
+            var timeSinceLastCheck = DateTime.Now - _settings.LastUpdateCheck;
+            if (timeSinceLastCheck.TotalDays >= 1)
+            {
+                // Check after a short delay to not block startup
+                Task.Delay(5000).ContinueWith(_ => CheckForUpdates(false));
+            }
+        }
     }
 
     private void FindActiveInterface()

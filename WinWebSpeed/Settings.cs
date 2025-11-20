@@ -45,6 +45,7 @@ public class Settings
     public string? CustomBarColor { get; set; }
     public string? CustomLabelColor { get; set; }
     public DateTime LastUpdateCheck { get; set; } = DateTime.MinValue;
+    public bool CheckForUpdates { get; set; } = true;
 
     private const string RegistryKeyPath = @"Software\WinWebSpeed";
 
@@ -67,6 +68,7 @@ public class Settings
                 if (CustomBarColor != null) key.SetValue("CustomBarColor", CustomBarColor);
                 if (CustomLabelColor != null) key.SetValue("CustomLabelColor", CustomLabelColor);
                 key.SetValue("LastUpdateCheck", LastUpdateCheck.ToBinary());
+                key.SetValue("CheckForUpdates", CheckForUpdates ? 1 : 0);
             }
         }
         catch { /* Ignore registry errors */ }
@@ -97,6 +99,7 @@ public class Settings
                 {
                     settings.LastUpdateCheck = DateTime.FromBinary(Convert.ToInt64(checkBinary));
                 }
+                settings.CheckForUpdates = Convert.ToInt32(key.GetValue("CheckForUpdates", 1)) == 1;
             }
         }
         catch { /* Ignore registry errors */ }
