@@ -126,20 +126,28 @@ public partial class MainWindow : Window
     {
         _notifyIcon = new WinForms.NotifyIcon();
         
-        string iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
-        if (System.IO.File.Exists(iconPath))
+        // Try to load .ico file first (better quality)
+        string icoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.ico");
+        if (System.IO.File.Exists(icoPath))
         {
             try 
             {
-                using var bitmap = new System.Drawing.Bitmap(iconPath);
-                _notifyIcon.Icon = System.Drawing.Icon.FromHandle(bitmap.GetHicon());
+                using var fileStream = new System.IO.FileStream(icoPath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                _notifyIcon.Icon = new System.Drawing.Icon(fileStream);
             }
             catch
             {
-                _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
+                // Fallback to PNG conversion
+                LoadIconFromPng();
             }
         }
         else
+        {
+            // Fallback to PNG conversion
+            LoadIconFromPng();
+        }
+        
+        if (_notifyIcon.Icon == null)
         {
             _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
         }
@@ -205,6 +213,23 @@ public partial class MainWindow : Window
         contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Exit", null, (s, e) => Close()));
 
         _notifyIcon.ContextMenuStrip = contextMenu;
+    }
+    
+    private void LoadIconFromPng()
+    {
+        string pngPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
+        if (System.IO.File.Exists(pngPath))
+        {
+            try 
+            {
+                using var bitmap = new System.Drawing.Bitmap(pngPath);
+                _notifyIcon!.Icon = System.Drawing.Icon.FromHandle(bitmap.GetHicon());
+            }
+            catch
+            {
+                // Will use default icon
+            }
+        }
     }
 
     private void SetTheme(string themeName)
