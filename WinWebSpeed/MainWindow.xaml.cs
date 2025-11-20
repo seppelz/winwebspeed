@@ -1,58 +1,72 @@
-﻿using System.ComponentModel;
+﻿﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
 using System.Net.NetworkInformation;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
-using System.Threading.Tasks;
 using WinForms = System.Windows.Forms;
 
 namespace WinWebSpeed;
 
 public partial class MainWindow : Window
 {
-    private DispatcherTimer _timer;
+    // High-priority timer for time-sensitive statistics
+    private readonly DispatcherTimer _statsTimer;
+
+    // Low-priority timer for non-critical UI updates (staying on top)
+    private readonly DispatcherTimer _topmostTimer;
+
     private NetworkInterface? _activeInterface;
     private long _prevBytesReceived;
     private long _prevBytesSent;
     private const int UpdateInterval = 1000; // 1 second
-    
-    // Store current speeds for immediate UI refresh
+
     private long _currentDownloadSpeed;
     private long _currentUploadSpeed;
 
     private WinForms.NotifyIcon? _notifyIcon;
-    private Settings _settings;
+    private readonly Settings _settings;
     private Theme _currentTheme;
     private int _maxSpeed = 100;
     private const string RegistryKeyName = "WinWebSpeed";
     private string? _pendingUpdateUrl;
 
-    // CPU & RAM Counters
     private System.Diagnostics.PerformanceCounter? _cpuCounter;
-    private Dictionary<int, TimeSpan> _prevProcessorTimes = new Dictionary<int, TimeSpan>();
+    private readonly Dictionary<int, TimeSpan> _prevProcessorTimes = new();
     private DateTime _prevTime = DateTime.Now;
 
     public MainWindow()
     {
         InitializeComponent();
-        
-        // Load settings
+
         _settings = Settings.Load();
         _currentTheme = Theme.GetTheme(_settings.ThemeName);
         _maxSpeed = _settings.MaxSpeed;
-        
-        _timer = new DispatcherTimer();
+
+        // *** THE CORE FIX IS HERE ***
+
+        // 1. Initialize the high-priority timer for statistics.
+        // This runs at the default priority to ensure accurate timing.
+        _statsTimer = new DispatcherTimer();
+
+        // 2. Initialize the low-priority timer for keeping the window on top.
+        // Setting the priority to ApplicationIdle is crucial. It tells the dispatcher
+        // to only run this timer when the UI thread isn't busy with more important
+        // tasks, like the _statsTimer.
+        _topmostTimer = new DispatcherTimer(DispatcherPriority.ApplicationIdle, Dispatcher);
+
+        // *** END OF FIX ***
+
         InitializeTrayIcon();
         InitializePerformanceCounters();
         Loaded += MainWindow_Loaded;
         LocationChanged += MainWindow_LocationChanged;
-        
-        // Ensure topmost behavior
-        Deactivated += (s, e) => { ForceTopMost(); };
-        
-        // Apply saved position
+
         if (!double.IsNaN(_settings.WindowX) && !double.IsNaN(_settings.WindowY))
         {
             Left = _settings.WindowX;
@@ -60,13 +74,11 @@ public partial class MainWindow : Window
         }
         else
         {
-            // Default position: bottom-right corner
             var workingArea = SystemParameters.WorkArea;
             Left = workingArea.Right - Width - 10;
             Top = workingArea.Bottom - Height - 10;
         }
-        
-        // Apply theme
+
         ApplyTheme(_currentTheme);
     }
 
@@ -88,26 +100,33 @@ public partial class MainWindow : Window
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
-    static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
-    static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-    const uint SWP_NOSIZE = 0x0001;
-    const uint SWP_NOMOVE = 0x0002;
-    const uint SWP_NOACTIVATE = 0x0010;
+    private static readonly IntPtr HwndTopmost = new(-1);
+    private const uint SwpNosize = 0x0001;
+    private const uint SwpNomove = 0x0002;
+    private const uint SwpNoactivate = 0x0010;
 
     private void ForceTopMost()
     {
-        IntPtr hWnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-        SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+        try
+        {
+            if (!IsLoaded || !IsVisible) return;
+            var hWnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            if (hWnd != IntPtr.Zero)
+            {
+                SetWindowPos(hWnd, HwndTopmost, 0, 0, 0, 0, SwpNosize | SwpNomove | SwpNoactivate);
+            }
+        }
+        catch { /* Ignored */ }
     }
 
-    // RAM P/Invoke
-    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
+    private static extern bool GlobalMemoryStatusEx(ref MemoryStatusEx lpBuffer);
 
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    public struct MEMORYSTATUSEX
+    private struct MemoryStatusEx
     {
         public uint dwLength;
         public uint dwMemoryLoad;
@@ -118,18 +137,14 @@ public partial class MainWindow : Window
         public ulong ullTotalVirtual;
         public ulong ullAvailVirtual;
         public ulong ullAvailExtendedVirtual;
-        public void Init()
-        {
-            dwLength = (uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(MEMORYSTATUSEX));
-        }
+        public void Init() => dwLength = (uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(MemoryStatusEx));
     }
 
     private void InitializeTrayIcon()
     {
         _notifyIcon = new WinForms.NotifyIcon();
         
-        // Try to load .ico file first (better quality)
-        string icoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.ico");
+        var icoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.ico");
         if (System.IO.File.Exists(icoPath))
         {
             try 
@@ -137,22 +152,11 @@ public partial class MainWindow : Window
                 using var fileStream = new System.IO.FileStream(icoPath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
                 _notifyIcon.Icon = new System.Drawing.Icon(fileStream);
             }
-            catch
-            {
-                // Fallback to PNG conversion
-                LoadIconFromPng();
-            }
+            catch { LoadIconFromPng(); }
         }
-        else
-        {
-            // Fallback to PNG conversion
-            LoadIconFromPng();
-        }
+        else { LoadIconFromPng(); }
         
-        if (_notifyIcon.Icon == null)
-        {
-            _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
-        }
+        if (_notifyIcon.Icon == null) { _notifyIcon.Icon = System.Drawing.SystemIcons.Application; }
 
         _notifyIcon.Visible = true;
         _notifyIcon.Text = "WinWebSpeed";
@@ -160,91 +164,47 @@ public partial class MainWindow : Window
         {
             if (_pendingUpdateUrl != null)
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = _pendingUpdateUrl,
-                    UseShellExecute = true
-                });
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = _pendingUpdateUrl, UseShellExecute = true });
                 _pendingUpdateUrl = null;
             }
         };
 
         var contextMenu = new WinForms.ContextMenuStrip();
-
-        // Unit Selection
         var unitItem = new WinForms.ToolStripMenuItem("Speed Unit");
-        var bytesItem = new WinForms.ToolStripMenuItem("Bytes/s (KB/s, MB/s)", null, (s, e) => SetUnit(SpeedUnit.Bytes));
-        var bitsItem = new WinForms.ToolStripMenuItem("Bits/s (Kbit/s, Mbit/s)", null, (s, e) => SetUnit(SpeedUnit.Bits));
-        bytesItem.Checked = _settings.SpeedUnit == SpeedUnit.Bytes;
-        bitsItem.Checked = _settings.SpeedUnit == SpeedUnit.Bits;
-        unitItem.DropDownItems.Add(bytesItem);
-        unitItem.DropDownItems.Add(bitsItem);
+        var bytesItem = new WinForms.ToolStripMenuItem("Bytes/s (KB/s, MB/s)", null, (s, e) => SetUnit(SpeedUnit.Bytes)) { Checked = _settings.SpeedUnit == SpeedUnit.Bytes };
+        var bitsItem = new WinForms.ToolStripMenuItem("Bits/s (Kbit/s, Mbit/s)", null, (s, e) => SetUnit(SpeedUnit.Bits)) { Checked = _settings.SpeedUnit == SpeedUnit.Bits };
+        unitItem.DropDownItems.AddRange(new WinForms.ToolStripItem[] { bytesItem, bitsItem });
         contextMenu.Items.Add(unitItem);
 
-        // Max Speed Selection
         var maxSpeedItem = new WinForms.ToolStripMenuItem("Max Speed");
         int[] speeds = { 10, 25, 50, 100, 250, 500, 1000 };
         foreach (var speed in speeds)
         {
-            var speedItem = new WinForms.ToolStripMenuItem($"{speed} Mbit/s", null, (s, e) => SetMaxSpeed(speed));
-            speedItem.Checked = _maxSpeed == speed;
-            maxSpeedItem.DropDownItems.Add(speedItem);
+            maxSpeedItem.DropDownItems.Add(new WinForms.ToolStripMenuItem($"{speed} Mbit/s", null, (s, e) => SetMaxSpeed(speed)) { Checked = _maxSpeed == speed });
         }
         contextMenu.Items.Add(maxSpeedItem);
 
-        // Themes
         var themeItem = new WinForms.ToolStripMenuItem("Themes");
         foreach (var theme in Theme.PredefinedThemes)
         {
-            var themeMenuItem = new WinForms.ToolStripMenuItem(theme.Name, null, (s, e) => SetTheme(theme.Name));
-            themeMenuItem.Checked = _settings.ThemeName == theme.Name;
-            themeItem.DropDownItems.Add(themeMenuItem);
+            themeItem.DropDownItems.Add(new WinForms.ToolStripMenuItem(theme.Name, null, (s, e) => SetTheme(theme.Name)) { Checked = _settings.ThemeName == theme.Name });
         }
         contextMenu.Items.Add(themeItem);
-
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
-
-        // Toggles
-        var cpuItem = new WinForms.ToolStripMenuItem("Show CPU", null, (s, e) => ToggleCpu());
-        cpuItem.Checked = _settings.ShowCpu;
-        cpuItem.Name = "cpuItem";
-        contextMenu.Items.Add(cpuItem);
-
-        var ramItem = new WinForms.ToolStripMenuItem("Show RAM", null, (s, e) => ToggleRam());
-        ramItem.Checked = _settings.ShowRam;
-        ramItem.Name = "ramItem";
-        contextMenu.Items.Add(ramItem);
-
-        // Run at Startup
-        var startupItem = new WinForms.ToolStripMenuItem("Run at Startup", null, (s, e) => ToggleStartup());
-        startupItem.Checked = _settings.RunAtStartup;
-        startupItem.Name = "startupItem";
-        contextMenu.Items.Add(startupItem);
-
+        contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Show CPU", null, (s, e) => ToggleCpu()) { Checked = _settings.ShowCpu, Name = "cpuItem" });
+        contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Show RAM", null, (s, e) => ToggleRam()) { Checked = _settings.ShowRam, Name = "ramItem" });
+        contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Run at Startup", null, (s, e) => ToggleStartup()) { Checked = _settings.RunAtStartup, Name = "startupItem" });
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
-
-        // Check for Updates
-        var updateItem = new WinForms.ToolStripMenuItem("Check for Updates", null, (s, e) => CheckForUpdates(true));
-        updateItem.Name = "updateItem";
-        contextMenu.Items.Add(updateItem);
-
-        // Enable/Disable Update Checks
-        var autoUpdateItem = new WinForms.ToolStripMenuItem("Auto-check for Updates", null, (s, e) => ToggleAutoUpdate());
-        autoUpdateItem.Checked = _settings.CheckForUpdates;
-        autoUpdateItem.Name = "autoUpdateItem";
-        contextMenu.Items.Add(autoUpdateItem);
-
+        contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Check for Updates", null, (s, e) => CheckForUpdates(true)) { Name = "updateItem" });
+        contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Auto-check for Updates", null, (s, e) => ToggleAutoUpdate()) { Checked = _settings.CheckForUpdates, Name = "autoUpdateItem" });
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
-
-        // Exit
         contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Exit", null, (s, e) => Close()));
-
         _notifyIcon.ContextMenuStrip = contextMenu;
     }
     
     private void LoadIconFromPng()
     {
-        string pngPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
+        var pngPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
         if (System.IO.File.Exists(pngPath))
         {
             try 
@@ -252,10 +212,7 @@ public partial class MainWindow : Window
                 using var bitmap = new System.Drawing.Bitmap(pngPath);
                 _notifyIcon!.Icon = System.Drawing.Icon.FromHandle(bitmap.GetHicon());
             }
-            catch
-            {
-                // Will use default icon
-            }
+            catch { /* Ignored */ }
         }
     }
 
@@ -266,18 +223,9 @@ public partial class MainWindow : Window
         _settings.Save();
         ApplyTheme(_currentTheme);
         
-        // Update checkmarks
-        if (_notifyIcon?.ContextMenuStrip != null)
+        if (_notifyIcon?.ContextMenuStrip?.Items.OfType<WinForms.ToolStripMenuItem>().FirstOrDefault(x => x.Text == "Themes") is { } themeMenu)
         {
-            var themeMenu = _notifyIcon.ContextMenuStrip.Items.OfType<WinForms.ToolStripMenuItem>()
-                .FirstOrDefault(x => x.Text == "Themes");
-            if (themeMenu != null)
-            {
-                foreach (WinForms.ToolStripMenuItem item in themeMenu.DropDownItems)
-                {
-                    item.Checked = item.Text == themeName;
-                }
-            }
+            foreach (WinForms.ToolStripMenuItem item in themeMenu.DropDownItems) { item.Checked = item.Text == themeName; }
         }
     }
 
@@ -287,18 +235,9 @@ public partial class MainWindow : Window
         _settings.MaxSpeed = speed;
         _settings.Save();
         
-        // Update checkmarks
-        if (_notifyIcon?.ContextMenuStrip != null)
+        if (_notifyIcon?.ContextMenuStrip?.Items.OfType<WinForms.ToolStripMenuItem>().FirstOrDefault(x => x.Text == "Max Speed") is { } maxSpeedMenu)
         {
-            var maxSpeedMenu = _notifyIcon.ContextMenuStrip.Items.OfType<WinForms.ToolStripMenuItem>()
-                .FirstOrDefault(x => x.Text == "Max Speed");
-            if (maxSpeedMenu != null)
-            {
-                foreach (WinForms.ToolStripMenuItem item in maxSpeedMenu.DropDownItems)
-                {
-                    item.Checked = item.Text == $"{speed} Mbit/s";
-                }
-            }
+            foreach (WinForms.ToolStripMenuItem item in maxSpeedMenu.DropDownItems) { item.Checked = item.Text == $"{speed} Mbit/s"; }
         }
     }
 
@@ -308,15 +247,7 @@ public partial class MainWindow : Window
         _settings.Save();
         spCpu.Visibility = _settings.ShowCpu ? Visibility.Visible : Visibility.Collapsed;
         UpdateWindowWidth();
-        
-        if (_notifyIcon?.ContextMenuStrip != null)
-        {
-            var cpuItem = _notifyIcon.ContextMenuStrip.Items["cpuItem"] as WinForms.ToolStripMenuItem;
-            if (cpuItem != null)
-            {
-                cpuItem.Checked = _settings.ShowCpu;
-            }
-        }
+        if (_notifyIcon?.ContextMenuStrip?.Items["cpuItem"] is WinForms.ToolStripMenuItem cpuItem) { cpuItem.Checked = _settings.ShowCpu; }
     }
 
     private void ToggleRam()
@@ -325,23 +256,12 @@ public partial class MainWindow : Window
         _settings.Save();
         spRam.Visibility = _settings.ShowRam ? Visibility.Visible : Visibility.Collapsed;
         UpdateWindowWidth();
-
-        if (_notifyIcon?.ContextMenuStrip != null)
-        {
-            var ramItem = _notifyIcon.ContextMenuStrip.Items["ramItem"] as WinForms.ToolStripMenuItem;
-            if (ramItem != null)
-            {
-                ramItem.Checked = _settings.ShowRam;
-            }
-        }
+        if (_notifyIcon?.ContextMenuStrip?.Items["ramItem"] is WinForms.ToolStripMenuItem ramItem) { ramItem.Checked = _settings.ShowRam; }
     }
 
     private void UpdateWindowWidth()
     {
-        double width = 260; // Base width for DL/UL
-        if (_settings.ShowCpu) width += 130;
-        if (_settings.ShowRam) width += 130;
-        this.Width = width;
+        Width = 260 + (_settings.ShowCpu ? 130 : 0) + (_settings.ShowRam ? 130 : 0);
     }
 
     private void SetUnit(SpeedUnit unit)
@@ -350,21 +270,12 @@ public partial class MainWindow : Window
         _settings.Save();
         UpdateSpeedDisplay(_currentDownloadSpeed, _currentUploadSpeed);
         
-        // Update checkmarks
-        if (_notifyIcon?.ContextMenuStrip != null)
+        if (_notifyIcon?.ContextMenuStrip?.Items.OfType<WinForms.ToolStripMenuItem>().FirstOrDefault(x => x.Text == "Speed Unit") is { } unitMenu)
         {
-            var unitMenu = _notifyIcon.ContextMenuStrip.Items.OfType<WinForms.ToolStripMenuItem>()
-                .FirstOrDefault(x => x.Text == "Speed Unit");
-            if (unitMenu != null)
+            foreach (WinForms.ToolStripMenuItem item in unitMenu.DropDownItems)
             {
-                foreach (WinForms.ToolStripMenuItem item in unitMenu.DropDownItems)
-                {
-                    if (item.Text != null)
-                    {
-                        item.Checked = (item.Text.Contains("Bytes") && unit == SpeedUnit.Bytes) ||
-                                      (item.Text.Contains("Bits") && unit == SpeedUnit.Bits);
-                    }
-                }
+                if (item.Text == null) continue;
+                item.Checked = (item.Text.Contains("Bytes") && unit == SpeedUnit.Bytes) || (item.Text.Contains("Bits") && unit == SpeedUnit.Bits);
             }
         }
     }
@@ -377,9 +288,9 @@ public partial class MainWindow : Window
         using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
         if (key == null) return;
 
-        if (_settings.RunAtStartup)
+        var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+        if (_settings.RunAtStartup && !string.IsNullOrEmpty(exePath))
         {
-            string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "";
             key.SetValue(RegistryKeyName, exePath);
         }
         else
@@ -387,51 +298,27 @@ public partial class MainWindow : Window
             key.DeleteValue(RegistryKeyName, false);
         }
         
-        if (_notifyIcon?.ContextMenuStrip != null)
-        {
-            var startupItem = _notifyIcon.ContextMenuStrip.Items["startupItem"] as WinForms.ToolStripMenuItem;
-            if (startupItem != null)
-            {
-                startupItem.Checked = _settings.RunAtStartup;
-            }
-        }
+        if (_notifyIcon?.ContextMenuStrip?.Items["startupItem"] is WinForms.ToolStripMenuItem startupItem) { startupItem.Checked = _settings.RunAtStartup; }
     }
 
     private void ToggleAutoUpdate()
     {
         _settings.CheckForUpdates = !_settings.CheckForUpdates;
         _settings.Save();
-        
-        if (_notifyIcon?.ContextMenuStrip != null)
-        {
-            var autoUpdateItem = _notifyIcon.ContextMenuStrip.Items["autoUpdateItem"] as WinForms.ToolStripMenuItem;
-            if (autoUpdateItem != null)
-            {
-                autoUpdateItem.Checked = _settings.CheckForUpdates;
-            }
-        }
+        if (_notifyIcon?.ContextMenuStrip?.Items["autoUpdateItem"] is WinForms.ToolStripMenuItem autoUpdateItem) { autoUpdateItem.Checked = _settings.CheckForUpdates; }
     }
 
     private async void CheckForUpdates(bool showNoUpdateMessage)
     {
         try
         {
-            // Get current version from assembly
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            var currentVersion = version != null 
-                ? (version.Build >= 0 
-                    ? $"{version.Major}.{version.Minor}.{version.Build}" 
-                    : $"{version.Major}.{version.Minor}")
-                : "1.0.0";
-
+            var currentVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
             var updateInfo = await UpdateChecker.CheckForUpdatesAsync(currentVersion);
             
             if (updateInfo == null)
             {
-                if (showNoUpdateMessage)
-                {
-                    _notifyIcon?.ShowBalloonTip(5000, "WinWebSpeed", "Unable to check for updates. Please check your internet connection.", WinForms.ToolTipIcon.Info);
-                }
+                if (showNoUpdateMessage) _notifyIcon?.ShowBalloonTip(5000, "WinWebSpeed", "Unable to check for updates.", WinForms.ToolTipIcon.Info);
                 return;
             }
 
@@ -441,106 +328,101 @@ public partial class MainWindow : Window
             if (updateInfo.IsNewer)
             {
                 _pendingUpdateUrl = updateInfo.DownloadUrl;
-
-                // Show notification
-                _notifyIcon?.ShowBalloonTip(10000, "Update Available", 
-                    $"WinWebSpeed {updateInfo.Version} is available! Click to download.", 
-                    WinForms.ToolTipIcon.Info);
-
-                // Show message box with option to download
-                var result = MessageBox.Show(
-                    $"A new version of WinWebSpeed is available!\n\n" +
-                    $"Current version: {currentVersion}\n" +
-                    $"Latest version: {updateInfo.Version}\n\n" +
-                    $"Would you like to download it now?",
-                    "Update Available",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Information);
-
-                if (result == MessageBoxResult.Yes && _pendingUpdateUrl != null)
-                {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = _pendingUpdateUrl,
-                        UseShellExecute = true
-                    });
-                    _pendingUpdateUrl = null;
-                }
+                _notifyIcon?.ShowBalloonTip(10000, "Update Available", $"WinWebSpeed {updateInfo.Version} is available! Click to download.", WinForms.ToolTipIcon.Info);
             }
             else if (showNoUpdateMessage)
             {
                 _notifyIcon?.ShowBalloonTip(3000, "WinWebSpeed", "You are using the latest version.", WinForms.ToolTipIcon.Info);
             }
         }
-        catch (Exception ex)
+        catch
         {
-            if (showNoUpdateMessage)
-            {
-                _notifyIcon?.ShowBalloonTip(5000, "WinWebSpeed", "Error checking for updates.", WinForms.ToolTipIcon.Warning);
-            }
+            if (showNoUpdateMessage) _notifyIcon?.ShowBalloonTip(5000, "WinWebSpeed", "Error checking for updates.", WinForms.ToolTipIcon.Warning);
         }
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        // Find active network interface
+        ForceTopMost();
         FindActiveInterface();
-
-        // Start monitoring
-        _timer.Interval = TimeSpan.FromMilliseconds(UpdateInterval);
-        _timer.Tick += Timer_Tick;
-        _timer.Start();
+        UpdateSpeedDisplay(0, 0);
         
-        // Apply saved visibility
         spCpu.Visibility = _settings.ShowCpu ? Visibility.Visible : Visibility.Collapsed;
         spRam.Visibility = _settings.ShowRam ? Visibility.Visible : Visibility.Collapsed;
         UpdateWindowWidth();
 
-        // Check for updates on startup (once per day if enabled)
-        if (_settings.CheckForUpdates)
+        // Configure and start the high-priority stats timer
+        _statsTimer.Interval = TimeSpan.FromMilliseconds(UpdateInterval);
+        _statsTimer.Tick += StatsTimer_Tick;
+        _statsTimer.Start();
+
+        // Configure and start the low-priority topmost timer
+        _topmostTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _topmostTimer.Tick += (s, ev) => ForceTopMost();
+        _topmostTimer.Start();
+
+        if (_settings.CheckForUpdates && (DateTime.Now - _settings.LastUpdateCheck).TotalDays >= 1)
         {
-            var timeSinceLastCheck = DateTime.Now - _settings.LastUpdateCheck;
-            if (timeSinceLastCheck.TotalDays >= 1)
-            {
-                // Check after a short delay to not block startup
-                Task.Delay(5000).ContinueWith(_ => CheckForUpdates(false));
-            }
+            Task.Delay(5000).ContinueWith(_ => CheckForUpdates(false), TaskScheduler.FromCurrentSynchronizationContext());
         }
     }
 
     private void FindActiveInterface()
     {
-        var interfaces = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(ni => ni.OperationalStatus == OperationalStatus.Up &&
-                        ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-            .OrderByDescending(ni => ni.Speed);
-
-        _activeInterface = interfaces.FirstOrDefault();
-
-        if (_activeInterface != null)
+        try
         {
-            var stats = _activeInterface.GetIPv4Statistics();
-            _prevBytesReceived = stats.BytesReceived;
-            _prevBytesSent = stats.BytesSent;
+            var bestInterface = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(ni => ni.OperationalStatus == OperationalStatus.Up &&
+                             ni.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                             ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel &&
+                             ni.Supports(NetworkInterfaceComponent.IPv4))
+                .OrderByDescending(ni => ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet || ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+                .ThenByDescending(ni => ni.GetIPProperties().GetIPv4Properties().Index)
+                .FirstOrDefault();
+
+            if (bestInterface != null)
+            {
+                var stats = bestInterface.GetIPv4Statistics();
+                _prevBytesReceived = stats.BytesReceived;
+                _prevBytesSent = stats.BytesSent;
+                _activeInterface = bestInterface;
+            }
+            else
+            {
+                _activeInterface = null;
+            }
+        }
+        catch
+        {
+            _activeInterface = null;
         }
     }
 
-    private void Timer_Tick(object? sender, EventArgs e)
+    private void StatsTimer_Tick(object? sender, EventArgs e)
     {
-        if (_activeInterface == null)
+        if (_activeInterface == null || _activeInterface.OperationalStatus != OperationalStatus.Up)
         {
             FindActiveInterface();
-            return;
+            if (_activeInterface == null)
+            {
+                txtDownload.Text = "No Network";
+                txtUpload.Text = string.Empty;
+                UpdateCpuRamDisplay();
+                return;
+            }
         }
 
         try
         {
             var stats = _activeInterface.GetIPv4Statistics();
-            long currentBytesReceived = stats.BytesReceived;
-            long currentBytesSent = stats.BytesSent;
+            var currentBytesReceived = stats.BytesReceived;
+            var currentBytesSent = stats.BytesSent;
 
             _currentDownloadSpeed = currentBytesReceived - _prevBytesReceived;
             _currentUploadSpeed = currentBytesSent - _prevBytesSent;
+
+            if (_currentDownloadSpeed < 0) _currentDownloadSpeed = 0;
+            if (_currentUploadSpeed < 0) _currentUploadSpeed = 0;
 
             _prevBytesReceived = currentBytesReceived;
             _prevBytesSent = currentBytesSent;
@@ -550,174 +432,113 @@ public partial class MainWindow : Window
         }
         catch
         {
-            _activeInterface = null;
+            _activeInterface = null; // Re-find the interface on the next tick
         }
     }
 
     private void UpdateSpeedDisplay(long downloadBytes, long uploadBytes)
     {
-        double downloadValue, uploadValue;
-        string dlUnit, ulUnit;
+        string FormatSpeed(long bytes, out double mbitValue)
+        {
+            mbitValue = (bytes * 8) / 1_000_000.0;
 
-        if (_settings.SpeedUnit == SpeedUnit.Bits)
-        {
-            downloadValue = (downloadBytes * 8) / 1_000_000.0;
-            uploadValue = (uploadBytes * 8) / 1_000_000.0;
-            dlUnit = "Mbit/s";
-            ulUnit = "Mbit/s";
-        }
-        else
-        {
-            downloadValue = downloadBytes / 1_000_000.0;
-            uploadValue = uploadBytes / 1_000_000.0;
-            
-            if (downloadValue < 1)
+            if (_settings.SpeedUnit == SpeedUnit.Bits)
             {
-                downloadValue = downloadBytes / 1_000.0;
-                dlUnit = "KB/s";
-            }
-            else
-            {
-                dlUnit = "MB/s";
+                return $"{mbitValue:F1} Mbit/s";
             }
             
-            if (uploadValue < 1)
-            {
-                uploadValue = uploadBytes / 1_000.0;
-                ulUnit = "KB/s";
-            }
-            else
-            {
-                ulUnit = "MB/s";
-            }
+            if (bytes < 1_000_000) return $"{bytes / 1_000.0:F1} KB/s";
+            return $"{bytes / 1_000_000.0:F1} MB/s";
         }
 
-        txtDownload.Text = $"{downloadValue:F1} {dlUnit}";
-        txtUpload.Text = $"{uploadValue:F1} {ulUnit}";
+        txtDownload.Text = FormatSpeed(downloadBytes, out var downloadMbit);
+        txtUpload.Text = FormatSpeed(uploadBytes, out var uploadMbit);
 
-        // Update progress bars based on max speed
-        // Convert maxSpeed to match current unit
-        double maxSpeedForCalc = _maxSpeed;
-        if (_settings.SpeedUnit == SpeedUnit.Bits)
-        {
-            maxSpeedForCalc *= 8; // Convert to bits
-        }
-        
-        double dlPercent = (downloadValue / maxSpeedForCalc) * 100;
-        double ulPercent = (uploadValue / maxSpeedForCalc) * 100;
-        pbDownload.Value = Math.Min(dlPercent, 100);
-        pbUpload.Value = Math.Min(ulPercent, 100);
+        pbDownload.Value = _maxSpeed > 0 ? Math.Min(downloadMbit / _maxSpeed * 100, 100) : 0;
+        pbUpload.Value = _maxSpeed > 0 ? Math.Min(uploadMbit / _maxSpeed * 100, 100) : 0;
     }
 
     private void UpdateCpuRamDisplay()
     {
-        // CPU
         if (_cpuCounter != null)
         {
             try
             {
-                float cpuUsage = _cpuCounter.NextValue();
+                var cpuUsage = _cpuCounter.NextValue();
                 txtCpu.Text = $"{cpuUsage:F1}%";
-
-                var topCpuProcess = GetTopCpuProcess();
-                txtTopCpu.Text = topCpuProcess ?? "-";
+                txtTopCpu.Text = GetTopCpuProcess() ?? "-";
             }
-            catch { }
+            catch { /* ignored */ }
         }
 
-        // RAM
         try
         {
-            MEMORYSTATUSEX memStatus = new MEMORYSTATUSEX();
+            var memStatus = new MemoryStatusEx();
             memStatus.Init();
             if (GlobalMemoryStatusEx(ref memStatus))
             {
                 txtRam.Text = $"{memStatus.dwMemoryLoad}%";
-
-                var topRamProcess = GetTopRamProcess();
-                txtTopRam.Text = topRamProcess ?? "-";
+                txtTopRam.Text = GetTopRamProcess() ?? "-";
             }
         }
-        catch { }
+        catch { /* ignored */ }
     }
 
     private string? GetTopCpuProcess()
     {
         try
         {
+            var elapsed = (DateTime.Now - _prevTime).TotalMilliseconds;
+            if (elapsed < 500) return null; 
+
+            string? topProcessName = null;
+            double maxCpu = -1;
+
             var processes = System.Diagnostics.Process.GetProcesses();
-            var currentTime = DateTime.Now;
-            var elapsed = (currentTime - _prevTime).TotalMilliseconds;
-
-            string? topProcess = null;
-            double maxCpu = 0;
-
             foreach (var process in processes)
             {
                 try
                 {
-                    int pid = process.Id;
-                    TimeSpan currentProcessorTime = process.TotalProcessorTime;
+                    var pid = process.Id;
+                    var currentProcessorTime = process.TotalProcessorTime;
 
-                    if (_prevProcessorTimes.ContainsKey(pid))
+                    if (_prevProcessorTimes.TryGetValue(pid, out var prevProcessorTime))
                     {
-                        TimeSpan prevProcessorTime = _prevProcessorTimes[pid];
-                        double cpuUsed = (currentProcessorTime - prevProcessorTime).TotalMilliseconds;
-                        double cpuPercent = (cpuUsed / (elapsed * Environment.ProcessorCount)) * 100;
-
+                        var cpuUsedMs = (currentProcessorTime - prevProcessorTime).TotalMilliseconds;
+                        var cpuPercent = cpuUsedMs / (elapsed * Environment.ProcessorCount) * 100;
                         if (cpuPercent > maxCpu)
                         {
                             maxCpu = cpuPercent;
-                            topProcess = process.ProcessName;
+                            topProcessName = process.ProcessName;
                         }
                     }
-
                     _prevProcessorTimes[pid] = currentProcessorTime;
                 }
-                catch { }
+                catch { /* Process may have exited */ }
             }
-
-            _prevTime = currentTime;
-            return topProcess;
+            _prevTime = DateTime.Now;
+            return topProcessName;
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
     }
 
     private string? GetTopRamProcess()
     {
         try
         {
-            var topProcess = System.Diagnostics.Process.GetProcesses()
-                .OrderByDescending(p =>
-                {
-                    try { return p.WorkingSet64; }
-                    catch { return 0; }
-                })
+            return System.Diagnostics.Process.GetProcesses()
+                .Where(p => { try { return !p.HasExited && p.WorkingSet64 > 0; } catch { return false; } })
+                .OrderByDescending(p => { try { return p.WorkingSet64; } catch { return 0L; } })
+                .Select(p => p.ProcessName)
                 .FirstOrDefault();
-
-            return topProcess?.ProcessName;
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
     }
 
     private void ApplyTheme(Theme theme)
     {
-        if (_settings.CustomTextColor != null || _settings.CustomBarColor != null || _settings.CustomLabelColor != null)
-        {
-            theme.TextColor = _settings.CustomTextColor ?? theme.TextColor;
-            theme.BarColor = _settings.CustomBarColor ?? theme.BarColor;
-            theme.LabelColor = _settings.CustomLabelColor ?? theme.LabelColor;
-        }
-
         var textColor = (SolidColorBrush)new BrushConverter().ConvertFrom(theme.TextColor)!;
         var barColor = (SolidColorBrush)new BrushConverter().ConvertFrom(theme.BarColor)!;
-        var labelColor = (SolidColorBrush)new BrushConverter().ConvertFrom(theme.LabelColor)!;
 
         txtDownload.Foreground = textColor;
         txtUpload.Foreground = textColor;
@@ -742,7 +563,8 @@ public partial class MainWindow : Window
         _settings.Save();
         _notifyIcon?.Dispose();
         _cpuCounter?.Dispose();
-        _timer?.Stop();
+        _statsTimer.Stop();
+        _topmostTimer.Stop();
         base.OnClosing(e);
     }
 }

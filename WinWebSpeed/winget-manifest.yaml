@@ -1,0 +1,41 @@
+# WinWebSpeed winget manifest
+# To submit to winget: https://github.com/microsoft/winget-pkgs
+# Place this file in: microsoft/winget-pkgs/manifests/s/seppelz/WinWebSpeed/
+
+PackageIdentifier: seppelz.WinWebSpeed
+PackageVersion: 1.0.0
+PackageName: WinWebSpeed
+Publisher: seppelz
+PublisherUrl: https://github.com/seppelz
+PublisherSupportUrl: https://github.com/seppelz/winwebspeed/issues
+License: MIT
+LicenseUrl: https://github.com/seppelz/winwebspeed/blob/main/WinWebSpeed/LICENSE
+Copyright: Copyright (c) 2024 seppelz
+CopyrightUrl: https://github.com/seppelz/winwebspeed
+ShortDescription: Ultra-lightweight native Windows network and system monitor
+Description: WinWebSpeed is an ultra-lightweight native Windows application that monitors your network upload and download speeds, CPU, and RAM usage in real-time. Features a transparent overlay window, customizable themes, system tray integration, and automatic update notifications. Only 1.8MB in size.
+Tags:
+  - network
+  - monitor
+  - system
+  - performance
+  - bandwidth
+  - cpu
+  - ram
+  - windows
+  - lightweight
+Moniker: winwebspeed
+Commands:
+  - WinWebSpeed
+Installers:
+  - Architecture: x64
+    InstallerType: exe
+    InstallerUrl: https://github.com/seppelz/winwebspeed/releases/download/v1.0.0/WinWebSpeed.exe
+    InstallerSha256: PLACEHOLDER_SHA256
+    # Note: Replace PLACEHOLDER_SHA256 with actual SHA256 hash after building release
+ManifestType: singleton
+ManifestVersion: 1.4.0
+
+
+
+
