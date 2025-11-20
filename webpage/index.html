@@ -2,431 +2,584 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description"
-    content="WinWebSpeed - Native network and system monitor for Windows. Lightweight, transparent overlay always visible in your taskbar.">
-  <meta name="keywords"
-    content="network monitor, speed test, windows app, cpu monitor, bandwidth monitor, taskbar overlay, native app">
-  <title>WinWebSpeed - Native Network & System Monitor for Windows</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="WinWebSpeed - Ultra-lightweight native Windows network and system monitor. Only 1.8MB. Always visible, fully transparent overlay.">
+    <meta name="keywords"
+        content="network monitor, system monitor, windows, lightweight, native, transparent overlay, cpu monitor, ram monitor">
+    <title>WinWebSpeed - Ultra-Lightweight Network & System Monitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
-  <!-- Navigation -->
-  <nav class="navbar">
-    <div class="container">
-      <div class="nav-content">
-        <div class="logo">
-          <img src="logo.png" alt="WinWebSpeed Logo" class="logo-icon" style="width: 24px; height: 24px;">
-          <span class="logo-text">WinWebSpeed</span>
-        </div>
-        <div class="nav-links">
-          <a href="#features">Features</a>
-          <a href="#download">Download</a>
-          <a href="#about">About</a>
-        </div>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
-      <div class="hero-content">
-        <div class="hero-badge">
-          <i data-lucide="zap" class="badge-icon"></i>
-          <span>Native Performance • Ultra-Lightweight</span>
-        </div>
-        <h1 class="hero-title">
-          Monitor Your Network & System
-          <span class="gradient-text">with Native Speed</span>
-        </h1>
-        <p class="hero-description">
-          WinWebSpeed is a <strong>native, lightweight</strong> Windows application that displays your network
-          upload/download speeds,
-          CPU usage, RAM usage, and top processes directly in your taskbar.
-          <strong>Minimal resource usage, maximum performance.</strong>
-        </p>
-        <div class="hero-cta">
-          <a href="#download" class="btn btn-primary">
-            <span>Download Now</span>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M10 2V12M10 12L6 8M10 12L14 8M3 14V16C3 17.1046 3.89543 18 5 18H15C16.1046 18 17 17.1046 17 16V14"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </a>
-          <a href="#features" class="btn btn-secondary">Learn More</a>
-        </div>
-        <div class="hero-stats">
-          <div class="stat-item">
-            <div class="stat-value">100%</div>
-            <div class="stat-label">Free</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">1.8MB</div>
-            <div class="stat-label">Size</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">Native</div>
-            <div class="stat-label">C# / WPF</div>
-          </div>
-        </div>
-        <p class="hero-note">*Lightweight native application built with C# and WPF</p>
-      </div>
-      <div class="hero-visual">
-        <!-- Taskbar Overlay Preview -->
-        <div class="overlay-preview-wrapper">
-          <div class="overlay-preview-label">Always-Visible Taskbar Overlay</div>
-          <div class="overlay-preview-container">
-            <div class="overlay-preview">
-              <div class="overlay-speed-container">
-                <div class="overlay-speed-item overlay-download">
-                  <div class="overlay-speed-item-header">
-                    <span class="overlay-arrow">↓</span>
-                    <span class="overlay-item-label">DL</span>
-                    <span class="overlay-speed-value" id="overlay-download-speed">0.0</span>
-                    <span class="overlay-speed-label">Mbit/s</span>
-                  </div>
-                  <div class="overlay-progress-bar-container">
-                    <div class="overlay-progress-bar">
-                      <div class="overlay-progress-fill" id="overlay-download-progress-fill"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="overlay-speed-item overlay-upload">
-                  <div class="overlay-speed-item-header">
-                    <span class="overlay-arrow">↑</span>
-                    <span class="overlay-item-label">UL</span>
-                    <span class="overlay-speed-value" id="overlay-upload-speed">0.0</span>
-                    <span class="overlay-speed-label">Mbit/s</span>
-                  </div>
-                  <div class="overlay-progress-bar-container">
-                    <div class="overlay-progress-bar">
-                      <div class="overlay-progress-fill" id="overlay-upload-progress-fill"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="overlay-speed-item overlay-cpu">
-                  <div class="overlay-speed-item-header">
-                    <span class="overlay-item-label">CPU</span>
-                    <span class="overlay-speed-value" id="overlay-cpu-usage">38.7</span>
-                    <span class="overlay-speed-label">%</span>
-                  </div>
-                  <div class="overlay-cpu-info">
-                    <div class="overlay-cpu-process">
-                      <span class="overlay-speed-label" style="font-size: 10px; opacity: 0.8;"
-                        id="overlay-cpu-process">chrome</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="overlay-speed-item overlay-ram">
-                  <div class="overlay-speed-item-header">
-                    <span class="overlay-item-label">RAM</span>
-                    <span class="overlay-speed-value" id="overlay-ram-usage">51.8</span>
-                    <span class="overlay-speed-label">%</span>
-                  </div>
-                  <div class="overlay-ram-info">
-                    <div class="overlay-ram-process">
-                      <span class="overlay-speed-label" style="font-size: 10px; opacity: 0.8;"
-                        id="overlay-ram-process">chrome</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="logo.png" alt="WinWebSpeed" class="nav-logo-img">
+                <span class="nav-logo-text">WinWebSpeed</span>
             </div>
-          </div>
+            <a href="#download" class="nav-cta">Download</a>
         </div>
-      </div>
-    </div>
-  </section>
+    </nav>
 
-  <!-- Features Section -->
-  <section id="features" class="features">
-    <div class="container">
-      <div class="section-header">
-        <h2 class="section-title">Powerful Features</h2>
-        <p class="section-description">Everything you need to monitor your network and system performance</p>
-      </div>
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i data-lucide="activity"></i>
-          </div>
-          <h3 class="feature-title">Real-Time Monitoring</h3>
-          <p class="feature-description">
-            Get instant updates on your network speeds every second. See your download and upload rates
-            in real-time with precise measurements.
-          </p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i data-lucide="cpu"></i>
-          </div>
-          <h3 class="feature-title">CPU & RAM Monitoring</h3>
-          <p class="feature-description">
-            Monitor your CPU usage percentage and RAM usage alongside network stats.
-            See which processes are consuming the most resources.
-            Keep an eye on system performance at a glance.
-          </p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i data-lucide="monitor"></i>
-          </div>
-          <h3 class="feature-title">Transparent Taskbar Overlay</h3>
-          <p class="feature-description">
-            Always-visible stats right in your taskbar. Shows network speeds, CPU usage, RAM usage, and top processes.
-            <strong>Fully transparent and frameless</strong> to blend perfectly with your desktop.
-          </p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i data-lucide="zap"></i>
-          </div>
-          <h3 class="feature-title">Native Performance</h3>
-          <p class="feature-description">
-            Built with C# and WPF for maximum performance and minimal resource usage.
-            Only 1.8MB in size with minimal memory footprint.
-          </p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i data-lucide="palette"></i>
-          </div>
-          <h3 class="feature-title">Customizable</h3>
-          <p class="feature-description">
-            Choose your preferred units (Bytes/s, Bits/s), toggle visibility of CPU/RAM stats via system tray menu.
-          </p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i data-lucide="shield"></i>
-          </div>
-          <h3 class="feature-title">Privacy First</h3>
-          <p class="feature-description">
-            All monitoring happens locally. No data collection, no telemetry, no internet required.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Why Monitor Section -->
-  <section class="why-monitor">
-    <div class="container">
-      <div class="section-header">
-        <h2 class="section-title">Why Always Monitor Your Network?</h2>
-        <p class="section-description">Stay informed and secure with real-time network visibility</p>
-      </div>
-      <div class="benefits-grid">
-        <div class="benefit-card security">
-          <div class="benefit-icon">
-            <i data-lucide="shield-check"></i>
-          </div>
-          <h3 class="benefit-title">Security & Malware Detection</h3>
-          <p class="benefit-description">
-            <strong>Detect suspicious activity instantly.</strong> If you notice your upload speed is unexpectedly high
-            while you're not doing anything, it could be a sign of malware, spyware, or unauthorized data transmission.
-            WinWebSpeed gives you the visibility to catch these threats early.
-          </p>
-          <p class="benefit-description">
-            Malicious software often sends data in the background without your knowledge. With WinWebSpeed always
-            visible
-            in your taskbar, you'll immediately notice unusual network activity.
-          </p>
-        </div>
-        <div class="benefit-card">
-          <div class="benefit-icon">
-            <i data-lucide="play-circle"></i>
-          </div>
-          <h3 class="benefit-title">Know If Content Is Actually Loading</h3>
-          <p class="benefit-description">
-            Ever wondered if your video stream is buffering or if a download is stuck? WinWebSpeed shows you exactly
-            what's happening. See real-time download speeds to know if your content is loading properly.
-          </p>
-          <p class="benefit-description">
-            No more guessing whether your browser is working or if you need to refresh. The numbers don't lie.
-          </p>
-        </div>
-        <div class="benefit-card">
-          <div class="benefit-icon">
-            <i data-lucide="globe"></i>
-          </div>
-          <h3 class="benefit-title">See Your Actual Browsing Speed</h3>
-          <p class="benefit-description">
-            Understand your real internet performance as you surf. See how fast pages load, how quickly files download,
-            and whether you're getting the speeds you're paying for from your ISP.
-          </p>
-          <p class="benefit-description">
-            Track your connection quality throughout the day. Identify peak usage times and notice when speeds drop.
-          </p>
-        </div>
-        <div class="benefit-card">
-          <div class="benefit-icon">
-            <i data-lucide="search"></i>
-          </div>
-          <h3 class="benefit-title">Troubleshoot Connection Issues</h3>
-          <p class="benefit-description">
-            Quickly identify network problems. If speeds suddenly drop to zero or become inconsistent, you'll know
-            immediately that there's an issue with your connection.
-          </p>
-        </div>
-        <div class="benefit-card">
-          <div class="benefit-icon">
-            <i data-lucide="settings"></i>
-          </div>
-          <h3 class="benefit-title">Optimize Your Network</h3>
-          <p class="benefit-description">
-            Make informed decisions about your network usage. See which activities consume the most bandwidth
-            and identify background processes that might be slowing you down.
-          </p>
-        </div>
-        <div class="benefit-card">
-          <div class="benefit-icon">
-            <i data-lucide="cpu"></i>
-          </div>
-          <h3 class="benefit-title">Monitor System Performance</h3>
-          <p class="benefit-description">
-            Keep track of CPU and RAM usage to ensure your system is running smoothly.
-            Identify resource-hungry applications at a glance.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- How It Works -->
-  <section class="how-it-works">
-    <div class="container">
-      <div class="section-header">
-        <h2 class="section-title">How It Works</h2>
-        <p class="section-description">Simple setup, powerful monitoring</p>
-      </div>
-      <div class="steps">
-        <div class="step">
-          <div class="step-number">1</div>
-          <h3>Download</h3>
-          <p>Get the lightweight executable. Only 1.8MB.</p>
-        </div>
-        <div class="step">
-          <div class="step-number">2</div>
-          <h3>Run</h3>
-          <p>WinWebSpeed starts instantly and sits in your system tray.</p>
-        </div>
-        <div class="step">
-          <div class="step-number">3</div>
-          <h3>Monitor</h3>
-          <p>See real-time network speeds, CPU usage, RAM usage, and top processes in the transparent taskbar overlay.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Download Section -->
-  <section id="download" class="download">
-    <div class="container">
-      <div class="download-content">
-        <h2 class="download-title">Ready to Get Started?</h2>
-        <p class="download-description">
-          Download WinWebSpeed for Windows 10/11.
-        </p>
-        <div class="download-options">
-          <div class="download-card">
-            <div class="download-icon">
-              <i data-lucide="package"></i>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span>Native • 1.8MB • Zero Bloat</span>
             </div>
-            <h3>WinWebSpeed</h3>
-            <p>Single executable. Portable and lightweight.</p>
-            <a href="#" class="btn btn-primary btn-block">Download Now</a>
-            <div class="download-meta">Windows 10/11 • Latest Version • 1.8MB</div>
-          </div>
-        </div>
-        <div class="download-note">
-          <p>💡 <strong>Note:</strong> Download links will be available once the releases are published on GitHub.</p>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- About Section -->
-  <section id="about" class="about">
-    <div class="container">
-      <div class="about-content">
-        <h2 class="section-title">About WinWebSpeed</h2>
-        <p class="about-text">
-          WinWebSpeed was created to provide a simple, elegant solution for monitoring network and system performance
-          on Windows. Built as a native application using C# and WPF, it focuses on
-          performance and efficiency. It gives you real-time visibility into your network speeds, CPU usage,
-          RAM usage, and top processes without consuming valuable system resources.
-        </p>
-        <div class="about-features">
-          <div class="about-feature">
-            <strong>Open Source</strong>
-            <p>Built with transparency. View the code, contribute, or customize to your needs.</p>
-          </div>
-          <div class="about-feature">
-            <strong>Privacy First</strong>
-            <p>All monitoring happens locally. No data collection, no telemetry, no internet required.</p>
-          </div>
-          <div class="about-feature">
-            <strong>Free Forever</strong>
-            <p>WinWebSpeed is completely free with no ads, no premium features, and no limitations.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+            <h1 class="hero-title">
+                Your Network & System,<br>
+                <span class="hero-title-gradient">Always Visible</span>
+            </h1>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-brand">
-          <div class="logo">
-            <img src="logo.png" alt="WinWebSpeed Logo" class="logo-icon" style="width: 24px; height: 24px;">
-            <span class="logo-text">WinWebSpeed</span>
-          </div>
-          <p class="footer-tagline">Real-time network monitoring for Windows</p>
-        </div>
-        <div class="footer-links">
-          <div class="footer-column">
-            <h4>Product</h4>
-            <a href="#features">Features</a>
-            <a href="#download">Download</a>
-            <a href="#about">About</a>
-          </div>
-          <div class="footer-column">
-            <h4>Resources</h4>
-            <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
-            <a href="https://github.com" target="_blank" rel="noopener">Documentation</a>
-            <a href="https://github.com" target="_blank" rel="noopener">Issues</a>
-          </div>
-          <div class="footer-column">
-            <h4>Legal</h4>
-            <a href="#">Privacy Policy</a>
-            <a href="#">License</a>
-          </div>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; 2024 WinWebSpeed. Open source under MIT License.</p>
-      </div>
-    </div>
-  </footer>
+            <p class="hero-description">
+                Ultra-lightweight transparent overlay for Windows. Monitor network speeds, CPU, and RAM
+                in real-time without cluttering your screen. Native C# application, not another resource hog.
+            </p>
 
-  <script src="script.js"></script>
-  <script>
-    // Initialize Lucide icons
-    lucide.createIcons();
-  </script>
+            <div class="hero-cta-group">
+                <a href="https://github.com/seppelz/winwebspeed/releases/latest/download/WinWebSpeed.exe" class="btn btn-primary" download>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download for Windows
+                    <span class="btn-subtitle">1.8MB • Free Forever</span>
+                </a>
+                <div class="hero-meta">
+                    <span class="hero-meta-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M9 11l3 3L22 4"></path>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                        Windows 10/11
+                    </span>
+                    <span class="hero-meta-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        No Installation
+                    </span>
+                </div>
+            </div>
+
+            <!-- Live Overlay Preview -->
+            <div class="overlay-demo">
+                <div class="overlay-demo-label">
+                    <span class="overlay-demo-dot"></span>
+                    Live Preview
+                </div>
+                <div class="overlay-demo-container">
+                    <div class="overlay-demo-bg"></div>
+                    <div class="overlay-demo-content">
+                        <!-- Download -->
+                        <div class="overlay-item">
+                            <div class="overlay-item-header">
+                                <span class="overlay-arrow">↓</span>
+                                <span class="overlay-label">DL</span>
+                                <span class="overlay-value" id="demo-dl">0.0</span>
+                                <span class="overlay-unit">Mbit/s</span>
+                            </div>
+                            <div class="overlay-bar">
+                                <div class="overlay-bar-fill" id="demo-dl-bar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Upload -->
+                        <div class="overlay-item">
+                            <div class="overlay-item-header">
+                                <span class="overlay-arrow">↑</span>
+                                <span class="overlay-label">UL</span>
+                                <span class="overlay-value" id="demo-ul">0.0</span>
+                                <span class="overlay-unit">Mbit/s</span>
+                            </div>
+                            <div class="overlay-bar">
+                                <div class="overlay-bar-fill" id="demo-ul-bar"></div>
+                            </div>
+                        </div>
+
+                        <!-- CPU -->
+                        <div class="overlay-item">
+                            <div class="overlay-item-header">
+                                <span class="overlay-label">CPU</span>
+                                <span class="overlay-value" id="demo-cpu">0</span>
+                                <span class="overlay-unit">%</span>
+                            </div>
+                            <div class="overlay-process" id="demo-cpu-process">chrome</div>
+                        </div>
+
+                        <!-- RAM -->
+                        <div class="overlay-item">
+                            <div class="overlay-item-header">
+                                <span class="overlay-label">RAM</span>
+                                <span class="overlay-value" id="demo-ram">0</span>
+                                <span class="overlay-unit">%</span>
+                            </div>
+                            <div class="overlay-process" id="demo-ram-process">chrome</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="overlay-demo-caption">
+                    Sits in your taskbar corner. Fully transparent. Always on top. Drag to reposition.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="benefits">
+        <div class="benefits-container">
+            <div class="benefit-card benefit-primary">
+                <div class="benefit-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+                <h3 class="benefit-title">Catch Suspicious Activity</h3>
+                <p class="benefit-text">
+                    See unusual upload spikes instantly. If you're not uploading anything but speeds are high,
+                    you'll know immediately—potential malware or unwanted data transmission.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <h3 class="benefit-title">Know What's Actually Happening</h3>
+                <p class="benefit-text">
+                    Is your video buffering or is it your connection? Download stuck or still going?
+                    Stop guessing. See real numbers in real-time.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                    </svg>
+                </div>
+                <h3 class="benefit-title">Truly Lightweight</h3>
+                <p class="benefit-text">
+                    Just 1.8MB. Native C# application. Uses minimal RAM.
+                    No bloated frameworks, no background services, no nonsense.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section class="features">
+        <div class="features-container">
+            <h2 class="section-title">Everything You Need, Nothing You Don't</h2>
+
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon-small">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h4 class="feature-title">Network Speeds</h4>
+                        <p class="feature-desc">Real-time download/upload with progress bars</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon-small">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                            <rect x="9" y="9" width="6" height="6"></rect>
+                            <line x1="9" y1="1" x2="9" y2="4"></line>
+                            <line x1="15" y1="1" x2="15" y2="4"></line>
+                            <line x1="9" y1="20" x2="9" y2="23"></line>
+                            <line x1="15" y1="20" x2="15" y2="23"></line>
+                            <line x1="20" y1="9" x2="23" y2="9"></line>
+                            <line x1="20" y1="14" x2="23" y2="14"></line>
+                            <line x1="1" y1="9" x2="4" y2="9"></line>
+                            <line x1="1" y1="14" x2="4" y2="14"></line>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h4 class="feature-title">CPU & RAM Usage</h4>
+                        <p class="feature-desc">Percentage + top consuming process</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon-small">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <path d="M3 9h18"></path>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h4 class="feature-title">Transparent Overlay</h4>
+                        <p class="feature-desc">Frameless, always on top, drag to move</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon-small">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 2v20M2 12h20"></path>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h4 class="feature-title">Unit Switching</h4>
+                        <p class="feature-desc">Toggle Bytes/s ↔ Bits/s from tray</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon-small">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h4 class="feature-title">System Tray</h4>
+                        <p class="feature-desc">Minimize to tray, configure options</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon-small">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h4 class="feature-title">Run at Startup</h4>
+                        <p class="feature-desc">Optional auto-start with Windows</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works">
+        <div class="how-container">
+            <h2 class="section-title">Three Steps. That's It.</h2>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3 class="step-title">Download</h3>
+                    <p class="step-text">Single 1.8MB executable. No installer, no dependencies.</p>
+                </div>
+
+                <div class="step-arrow">→</div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3 class="step-title">Run</h3>
+                    <p class="step-text">Double-click. Overlay appears in bottom-right corner.</p>
+                </div>
+
+                <div class="step-arrow">→</div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3 class="step-title">Monitor</h3>
+                    <p class="step-text">Real-time stats, always visible. Right-click tray to configure.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support Section -->
+    <section class="support">
+        <div class="support-container">
+            <div class="support-header">
+                <h2 class="section-title">Support Development</h2>
+                <p class="support-subtitle">WinWebSpeed is free forever. If you find it useful, consider supporting its
+                    development.</p>
+            </div>
+
+            <div class="support-grid">
+                <!-- Free Forever -->
+                <div class="support-card support-free">
+                    <div class="support-badge">Always Free</div>
+                    <h3 class="support-title">Community Edition</h3>
+                    <div class="support-price">
+                        <span class="support-price-amount">$0</span>
+                        <span class="support-price-period">forever</span>
+                    </div>
+                    <ul class="support-features">
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Real-time network monitoring
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            CPU & RAM usage tracking
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            6 built-in themes
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Full color customization
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Settings persistence
+                        </li>
+                    </ul>
+                    <a href="https://github.com/seppelz/winwebspeed/releases/latest/download/WinWebSpeed.exe" class="btn btn-support-free" download>Download Free</a>
+                </div>
+
+                <!-- Donation -->
+                <div class="support-card support-donate">
+                    <div class="support-badge support-badge-heart">❤️ Popular</div>
+                    <h3 class="support-title">Buy Me a Coffee</h3>
+                    <div class="support-price">
+                        <span class="support-price-amount">$3-10</span>
+                        <span class="support-price-period">one-time</span>
+                    </div>
+                    <ul class="support-features">
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Everything in Free
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Support development
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Help keep it free
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Warm fuzzy feeling
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            No extra features needed!
+                        </li>
+                    </ul>
+                    <a href="https://ko-fi.com/winwebspeed" target="_blank" class="btn btn-support-donate">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+                            </path>
+                        </svg>
+                        Donate
+                    </a>
+                </div>
+            </div>
+
+            <p class="support-note">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                All features in the free version will remain free forever. WinWebSpeed is supported entirely by
+                donations.
+            </p>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download">
+        <div class="download-container">
+            <div class="download-content">
+                <h2 class="download-title">Ready to See What's Really Happening?</h2>
+                <p class="download-subtitle">Free. No signup. No installation. Just download and run.</p>
+
+                <a href="https://github.com/seppelz/winwebspeed/releases/latest/download/WinWebSpeed.exe" class="btn btn-download" download>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download WinWebSpeed
+                    <span class="btn-download-meta">1.8MB • Windows 10/11</span>
+                </a>
+
+                <p class="download-note">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    No ads, no tracking, no data collection.
+                </p>
+            </div>
+        </div>
+    </section>
+    <!-- FAQ Section -->
+    <section class="faq">
+        <div class="faq-container">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>Does WinWebSpeed work on Windows 11?</span>
+                        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! WinWebSpeed works perfectly on both Windows 10 and Windows 11.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>Can I customize the colors?</span>
+                        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Absolutely! Choose from 6 built-in themes or create your own custom
+                            theme.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>Can I change the position of the overlay?</span>
+                        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! Simply click and drag the overlay to any position on your screen.
+                            Your preferred
+                            position is automatically saved and will be remembered when you restart
+                            the app.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How do I change the speed units?</span>
+                        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Right-click the system tray icon and select "Speed Units" to toggle
+                            between Bytes/s (KB/s,
+                            MB/s) and Bits/s (Kbit/s, Mbit/s).</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>The progress bars fill up too quickly. Can I adjust this?</span>
+                        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! Right-click the tray icon, go to "Max Speed", and select a higher
+                            value (e.g., 250 or
+                            500 Mbit/s) to match your internet connection speed. This will scale the
+                            progress bars
+                            appropriately.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How do I uninstall WinWebSpeed?</span>
+                        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Simply delete the executable. WinWebSpeed is portable and only stores
+                            preferences in the
+                            Windows registry (which you can optionally clean up via regedit if
+                            desired).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p class="footer-text">Native network & system monitor for Windows</p>
+            <p class="footer-copy">&copy; 2024 WinWebSpeed • Open Source • MIT License</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>lucide.createIcons();</script>
 </body>
 
 </html>
