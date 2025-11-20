@@ -17,6 +17,8 @@ public partial class MainWindow : Window
 {
     // High-priority timer for time-sensitive statistics
     private readonly DispatcherTimer _statsTimer;
+    private DateTime _lastTickTime = DateTime.Now;
+
 
     // Low-priority timer for non-critical UI updates (staying on top)
     private readonly DispatcherTimer _topmostTimer;
@@ -417,22 +419,39 @@ public partial class MainWindow : Window
             var stats = _activeInterface.GetIPv4Statistics();
             var currentBytesReceived = stats.BytesReceived;
             var currentBytesSent = stats.BytesSent;
+            var now = DateTime.Now;
 
-            _currentDownloadSpeed = currentBytesReceived - _prevBytesReceived;
-            _currentUploadSpeed = currentBytesSent - _prevBytesSent;
+            // Calculate exact time passed since last tick (e.g., 1.05 seconds)
+            double timeElapsed = (now - _lastTickTime).TotalSeconds;
+            
+            // Prevent division by zero or extremely small intervals on startup
+            if (timeElapsed > 0)
+            {
+                // Calculate raw difference
+                long bytesReceivedDiff = currentBytesReceived - _prevBytesReceived;
+                long bytesSentDiff = currentBytesSent - _prevBytesSent;
 
+                // Adjust purely for the time elapsed. 
+                // If 100Mb came in 1.2 seconds, this results in 83Mb/s (Correct) 
+                // instead of 100Mb/s (Incorrect).
+                _currentDownloadSpeed = (long)(bytesReceivedDiff / timeElapsed);
+                _currentUploadSpeed = (long)(bytesSentDiff / timeElapsed);
+            }
+
+            // Handle negative values (counter reset)
             if (_currentDownloadSpeed < 0) _currentDownloadSpeed = 0;
             if (_currentUploadSpeed < 0) _currentUploadSpeed = 0;
 
             _prevBytesReceived = currentBytesReceived;
             _prevBytesSent = currentBytesSent;
+            _lastTickTime = now; // Reset time for next tick
 
             UpdateSpeedDisplay(_currentDownloadSpeed, _currentUploadSpeed);
             UpdateCpuRamDisplay();
         }
         catch
         {
-            _activeInterface = null; // Re-find the interface on the next tick
+            _activeInterface = null; 
         }
     }
 
