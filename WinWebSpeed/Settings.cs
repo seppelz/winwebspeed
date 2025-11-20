@@ -2,6 +2,12 @@ using Microsoft.Win32;
 
 namespace WinWebSpeed;
 
+public enum SpeedUnit
+{
+    Bytes,
+    Bits
+}
+
 public class Theme
 {
     public string Name { get; set; } = "Orange";
