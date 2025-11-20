@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -146,17 +147,22 @@ public partial class MainWindow : Window
     {
         _notifyIcon = new WinForms.NotifyIcon();
         
-        var icoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.ico");
-        if (System.IO.File.Exists(icoPath))
+        // Try to load from embedded resources first (works with single-file publish)
+        if (!LoadIconFromEmbeddedResources())
         {
-            try 
+            // Fallback to file system (for development)
+            var icoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.ico");
+            if (System.IO.File.Exists(icoPath))
             {
-                using var fileStream = new System.IO.FileStream(icoPath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
-                _notifyIcon.Icon = new System.Drawing.Icon(fileStream);
+                try 
+                {
+                    using var fileStream = new System.IO.FileStream(icoPath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                    _notifyIcon.Icon = new System.Drawing.Icon(fileStream);
+                }
+                catch { LoadIconFromPng(); }
             }
-            catch { LoadIconFromPng(); }
+            else { LoadIconFromPng(); }
         }
-        else { LoadIconFromPng(); }
         
         if (_notifyIcon.Icon == null) { _notifyIcon.Icon = System.Drawing.SystemIcons.Application; }
 
@@ -204,8 +210,93 @@ public partial class MainWindow : Window
         _notifyIcon.ContextMenuStrip = contextMenu;
     }
     
+    private bool LoadIconFromEmbeddedResources()
+    {
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            
+            // Try different possible resource name patterns
+            var possibleNames = new[]
+            {
+                "WinWebSpeed.logo.ico",
+                "logo.ico",
+                assembly.GetName().Name + ".logo.ico"
+            };
+            
+            foreach (var resourceName in possibleNames)
+            {
+                try
+                {
+                    using var stream = assembly.GetManifestResourceStream(resourceName);
+                    if (stream != null)
+                    {
+                        _notifyIcon!.Icon = new System.Drawing.Icon(stream);
+                        return true;
+                    }
+                }
+                catch { /* Try next name */ }
+            }
+            
+            // Fallback: search for any resource ending with logo.ico
+            var foundResource = assembly.GetManifestResourceNames().FirstOrDefault(n => n.EndsWith("logo.ico", StringComparison.OrdinalIgnoreCase));
+            if (foundResource != null)
+            {
+                using var stream = assembly.GetManifestResourceStream(foundResource);
+                if (stream != null)
+                {
+                    _notifyIcon!.Icon = new System.Drawing.Icon(stream);
+                    return true;
+                }
+            }
+            
+            // Try loading PNG from embedded resources
+            possibleNames = new[]
+            {
+                "WinWebSpeed.logo.png",
+                "logo.png",
+                assembly.GetName().Name + ".logo.png"
+            };
+            
+            foreach (var resourceName in possibleNames)
+            {
+                try
+                {
+                    using var stream = assembly.GetManifestResourceStream(resourceName);
+                    if (stream != null)
+                    {
+                        using var bitmap = new System.Drawing.Bitmap(stream);
+                        _notifyIcon!.Icon = System.Drawing.Icon.FromHandle(bitmap.GetHicon());
+                        return true;
+                    }
+                }
+                catch { /* Try next name */ }
+            }
+            
+            // Fallback: search for any resource ending with logo.png
+            foundResource = assembly.GetManifestResourceNames().FirstOrDefault(n => n.EndsWith("logo.png", StringComparison.OrdinalIgnoreCase));
+            if (foundResource != null)
+            {
+                using var stream = assembly.GetManifestResourceStream(foundResource);
+                if (stream != null)
+                {
+                    using var bitmap = new System.Drawing.Bitmap(stream);
+                    _notifyIcon!.Icon = System.Drawing.Icon.FromHandle(bitmap.GetHicon());
+                    return true;
+                }
+            }
+        }
+        catch { /* Ignored */ }
+        
+        return false;
+    }
+    
     private void LoadIconFromPng()
     {
+        // Try embedded resources first
+        if (LoadIconFromEmbeddedResources()) return;
+        
+        // Fallback to file system (for development)
         var pngPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
         if (System.IO.File.Exists(pngPath))
         {
