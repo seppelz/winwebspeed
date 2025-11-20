@@ -252,6 +252,14 @@
   </div>
   
   <script>
+    // Simple logger - disables logging in production
+    const isProduction = location.href.includes('app.asar') || !location.href.includes('file://');
+    const logger = {
+      log: (...args) => { if (!isProduction) console.log(...args); },
+      error: (...args) => { console.error(...args); }, // Always log errors
+      debug: (...args) => { if (!isProduction) console.debug(...args); }
+    };
+    
     // Convert kbps to different units
     function convertSpeed(kbps, unit) {
       switch (unit) {
@@ -280,11 +288,24 @@
       }
     }
     
+    // Validate unit value
+    function validateUnit(unit) {
+      if (unit === 'kbps' || unit === 'mbps' || unit === 'mbs') {
+        return unit;
+      }
+      return 'mbps'; // Default to Mbit/s if invalid
+    }
+    
     // Get selected unit from localStorage (default Mbit/s)
     function getSelectedUnit() {
-      const stored = localStorage.getItem('netspeed-unit');
-      if (stored && ['kbps', 'mbps', 'mbs'].includes(stored)) {
-        return stored;
+      const stored = localStorage.getItem('netspeed-unit') || localStorage.getItem('webspeed-unit');
+      if (stored) {
+        const validated = validateUnit(stored);
+        if (validated !== stored) {
+          // Update localStorage with validated value
+          localStorage.setItem('webspeed-unit', validated);
+        }
+        return validated;
       }
       return 'mbps'; // Default Mbit/s
     }
@@ -294,14 +315,31 @@
       return kbps / 1000;
     }
     
+    // Validate max speed value
+    function validateMaxSpeed(value) {
+      if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+        return 100; // Default
+      }
+      if (value <= 0) {
+        return 1; // Minimum
+      }
+      if (value > 10000) {
+        return 10000; // Maximum
+      }
+      return Math.round(value * 100) / 100; // Round to 2 decimal places
+    }
+    
     // Get max speed from localStorage (default 100 Mbit/s)
     function getMaxSpeed() {
-          const stored = localStorage.getItem('webspeed-max-speed');
+      const stored = localStorage.getItem('webspeed-max-speed');
       if (stored) {
         const value = parseFloat(stored);
-        if (!isNaN(value) && value > 0) {
-          return value;
+        const validated = validateMaxSpeed(value);
+        if (validated !== value) {
+          // Update localStorage with validated value
+          localStorage.setItem('webspeed-max-speed', validated.toString());
         }
+        return validated;
       }
       return 100; // Default 100 Mbit/s
     }
@@ -474,6 +512,15 @@
       }
     }
     
+    // Get CPU temperature visibility from localStorage
+    function getShowCPUTemp() {
+      const stored = localStorage.getItem('webspeed-show-cpu-temp');
+      if (stored !== null) {
+        return stored === 'true';
+      }
+      return false; // Default to hidden
+    }
+    
     // Update CPU stats in overlay
     function updateCPUStats(stats) {
       const cpuUsageElement = document.getElementById('cpu-usage');
@@ -485,15 +532,30 @@
         }
       }
       
+      // Update CPU temperature (only if enabled and available)
       const cpuTempElement = document.getElementById('cpu-temperature');
       const cpuTempOverlay = document.getElementById('cpu-temp-overlay');
+      const showCPUTemp = getShowCPUTemp();
+      const showCPU = getShowCPU();
+      
+      // Only show temperature if both CPU stats and temperature are enabled
       if (cpuTempElement && cpuTempOverlay) {
-        if (stats.temperature !== null && stats.temperature !== undefined) {
-          cpuTempElement.textContent = stats.temperature.toFixed(1);
+        // Only update display if both CPU stats and temperature are enabled
+        if (showCPUTemp && showCPU) {
+          // Always show overlay when enabled
           cpuTempOverlay.style.display = 'flex';
+          
+          // Update the value if data is available
+          if (stats.temperature !== null && stats.temperature !== undefined) {
+            cpuTempElement.textContent = stats.temperature.toFixed(1);
+          } else {
+            // Show placeholder if data isn't available yet
+            cpuTempElement.textContent = '--';
+          }
         } else {
-          cpuTempElement.textContent = '--';
+          // Hide if either CPU stats or temperature toggle is disabled
           cpuTempOverlay.style.display = 'none';
+          cpuTempElement.textContent = '--';
         }
       }
       
@@ -564,6 +626,10 @@
       setInterval(() => {
         updateProgressBarVisibility();
         updateCPUAndRAMVisibility();
+        // Update CPU temperature visibility if it changed
+        if (window.electronAPI && window.electronAPI.onCPUStatsUpdate) {
+          // The temperature visibility will be checked in updateCPUStats
+        }
       }, 500); // Check every 500ms
     });
   </script>

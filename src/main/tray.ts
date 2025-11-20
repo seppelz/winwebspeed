@@ -1,6 +1,7 @@
 import { app, Tray, Menu, nativeImage } from 'electron';
 import * as path from 'path';
 import { NetworkStats } from '../types';
+import { logger } from '../utils/logger';
 
 // Helper function to check if app is set to start at login
 function isStartupEnabled(): boolean {
@@ -11,7 +12,7 @@ function isStartupEnabled(): boolean {
     });
     return settings.openAtLogin;
   } catch (error) {
-    console.error('Failed to get login item settings:', error);
+    logger.error('Failed to get login item settings:', error);
     return false;
   }
 }
@@ -37,10 +38,10 @@ function toggleStartup(enabled: boolean): void {
     });
     
     if (settings.openAtLogin !== enabled) {
-      console.error('Failed to set startup: expected', enabled, 'but got', settings.openAtLogin);
+      logger.error('Failed to set startup: expected', enabled, 'but got', settings.openAtLogin);
     }
   } catch (error) {
-    console.error('Failed to set login item settings:', error);
+    logger.error('Failed to set login item settings:', error);
   }
 }
 

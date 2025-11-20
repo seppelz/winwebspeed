@@ -1,6 +1,7 @@
 import { BrowserWindow, screen } from 'electron';
 import * as path from 'path';
-import { NetworkStats, CPUStats, RAMStats } from '../types';
+import { NetworkStats, CPUStats, RAMStats, SystemStats } from '../types';
+import { logger } from '../utils/logger';
 
 export class TaskbarOverlay {
   private overlayWindow: BrowserWindow | null = null;
@@ -97,7 +98,7 @@ export class TaskbarOverlay {
 
     // Wait for window to be ready before allowing updates
     this.overlayWindow.webContents.once('did-finish-load', () => {
-      console.log('Taskbar overlay window ready');
+      logger.log('Taskbar overlay window ready');
       this.isReady = true;
       // DevTools disabled for production to reduce memory usage
       // Uncomment for debugging: this.overlayWindow?.webContents.openDevTools({ mode: 'detach' });
@@ -120,7 +121,7 @@ export class TaskbarOverlay {
         try {
           this.overlayWindow.webContents.send('network-stats-update', stats);
         } catch (error) {
-          console.error('Error sending stats to overlay:', error);
+          logger.error('Error sending stats to overlay:', error);
         }
       } else {
         // If not ready yet, queue the first update
@@ -139,7 +140,7 @@ export class TaskbarOverlay {
         try {
           this.overlayWindow.webContents.send('cpu-stats-update', stats);
         } catch (error) {
-          console.error('Error sending CPU stats to overlay:', error);
+          logger.error('Error sending CPU stats to overlay:', error);
         }
       }
     }
@@ -151,7 +152,19 @@ export class TaskbarOverlay {
         try {
           this.overlayWindow.webContents.send('ram-stats-update', stats);
         } catch (error) {
-          console.error('Error sending RAM stats to overlay:', error);
+          logger.error('Error sending RAM stats to overlay:', error);
+        }
+      }
+    }
+  }
+
+  updateSystemStats(stats: SystemStats): void {
+    if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+      if (this.isReady) {
+        try {
+          this.overlayWindow.webContents.send('system-stats-update', stats);
+        } catch (error) {
+          logger.error('Error sending System stats to overlay:', error);
         }
       }
     }

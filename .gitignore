@@ -7,6 +7,10 @@ dist/
 release/
 *.tsbuildinfo
 
+# WinWebSpeed build outputs
+WinWebSpeed/bin/
+WinWebSpeed/obj/
+
 # Logs
 *.log
 npm-debug.log*

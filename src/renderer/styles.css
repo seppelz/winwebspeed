@@ -107,6 +107,8 @@ header h1 {
 
 .progress-toggle,
 .cpu-toggle,
+.cpu-temp-toggle,
+.cpu-power-toggle,
 .ram-toggle {
   display: flex;
   align-items: center;
@@ -115,6 +117,8 @@ header h1 {
 
 .progress-toggle label,
 .cpu-toggle label,
+.cpu-temp-toggle label,
+.cpu-power-toggle label,
 .ram-toggle label {
   display: flex;
   align-items: center;
@@ -125,6 +129,8 @@ header h1 {
 
 .progress-toggle input[type="checkbox"],
 .cpu-toggle input[type="checkbox"],
+.cpu-temp-toggle input[type="checkbox"],
+.cpu-power-toggle input[type="checkbox"],
 .ram-toggle input[type="checkbox"] {
   cursor: pointer;
   width: 18px;
@@ -290,10 +296,11 @@ main {
   stroke: #00bcd4;
 }
 
-.cpu-temp {
+.cpu-temp,
+.cpu-power {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .process-info {

@@ -1,25 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="WebSpeed - Real-time network speed and CPU monitoring for Windows. Lightweight, beautiful, and always visible in your taskbar.">
-  <meta name="keywords" content="network monitor, speed test, windows app, cpu monitor, bandwidth monitor, taskbar overlay">
-  <title>WebSpeed - Real-time Network & CPU Monitor for Windows</title>
+  <meta name="description"
+    content="WinWebSpeed - Native network and system monitor for Windows. Lightweight, transparent overlay always visible in your taskbar.">
+  <meta name="keywords"
+    content="network monitor, speed test, windows app, cpu monitor, bandwidth monitor, taskbar overlay, native app">
+  <title>WinWebSpeed - Native Network & System Monitor for Windows</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
+
 <body>
   <!-- Navigation -->
   <nav class="navbar">
     <div class="container">
       <div class="nav-content">
         <div class="logo">
-          <i data-lucide="zap" class="logo-icon"></i>
-          <span class="logo-text">WebSpeed</span>
+          <img src="logo.png" alt="WinWebSpeed Logo" class="logo-icon" style="width: 24px; height: 24px;">
+          <span class="logo-text">WinWebSpeed</span>
         </div>
         <div class="nav-links">
           <a href="#features">Features</a>
@@ -35,23 +40,26 @@
     <div class="container">
       <div class="hero-content">
         <div class="hero-badge">
-          <i data-lucide="sparkles" class="badge-icon"></i>
-          <span>New: CPU & RAM Monitoring</span>
+          <i data-lucide="zap" class="badge-icon"></i>
+          <span>Native Performance • Ultra-Lightweight</span>
         </div>
         <h1 class="hero-title">
           Monitor Your Network & System
-          <span class="gradient-text">in Real-Time</span>
+          <span class="gradient-text">with Native Speed</span>
         </h1>
         <p class="hero-description">
-          WebSpeed is a lightweight Windows application that displays your network upload/download speeds, 
-          CPU usage, RAM usage, and top processes directly in your taskbar. Beautiful, minimal, and always visible. 
-          <strong>Detect suspicious activity, verify downloads, monitor system performance, and stay informed about your connection.</strong>
+          WinWebSpeed is a <strong>native, lightweight</strong> Windows application that displays your network
+          upload/download speeds,
+          CPU usage, RAM usage, and top processes directly in your taskbar.
+          <strong>Minimal resource usage, maximum performance.</strong>
         </p>
         <div class="hero-cta">
           <a href="#download" class="btn btn-primary">
-            <span>Download Free</span>
+            <span>Download Now</span>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10 2V12M10 12L6 8M10 12L14 8M3 14V16C3 17.1046 3.89543 18 5 18H15C16.1046 18 17 17.1046 17 16V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path
+                d="M10 2V12M10 12L6 8M10 12L14 8M3 14V16C3 17.1046 3.89543 18 5 18H15C16.1046 18 17 17.1046 17 16V14"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </a>
           <a href="#features" class="btn btn-secondary">Learn More</a>
@@ -62,64 +70,74 @@
             <div class="stat-label">Free</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">~75MB</div>
-            <div class="stat-label">Installer*</div>
+            <div class="stat-value">1.8MB</div>
+            <div class="stat-label">Size</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">Real-time</div>
-            <div class="stat-label">Updates</div>
+            <div class="stat-value">Native</div>
+            <div class="stat-label">C# / WPF</div>
           </div>
         </div>
-        <p class="hero-note">*Compressed installer. Unpacked size ~170MB (typical for Electron apps)</p>
+        <p class="hero-note">*Lightweight native application built with C# and WPF</p>
       </div>
       <div class="hero-visual">
-        <div class="app-preview">
-          <div class="preview-window">
-            <div class="preview-header">
-              <div class="preview-dots">
-                <span></span><span></span><span></span>
-              </div>
-              <div class="preview-title">WebSpeed Monitor</div>
-            </div>
-            <div class="preview-content">
-              <div class="preview-stat download">
-                <div class="preview-icon">
-                  <i data-lucide="download"></i>
+        <!-- Taskbar Overlay Preview -->
+        <div class="overlay-preview-wrapper">
+          <div class="overlay-preview-label">Always-Visible Taskbar Overlay</div>
+          <div class="overlay-preview-container">
+            <div class="overlay-preview">
+              <div class="overlay-speed-container">
+                <div class="overlay-speed-item overlay-download">
+                  <div class="overlay-speed-item-header">
+                    <span class="overlay-arrow">↓</span>
+                    <span class="overlay-item-label">DL</span>
+                    <span class="overlay-speed-value" id="overlay-download-speed">0.0</span>
+                    <span class="overlay-speed-label">Mbit/s</span>
+                  </div>
+                  <div class="overlay-progress-bar-container">
+                    <div class="overlay-progress-bar">
+                      <div class="overlay-progress-fill" id="overlay-download-progress-fill"></div>
+                    </div>
+                  </div>
                 </div>
-                <div class="preview-info">
-                  <div class="preview-label">Download</div>
-                  <div class="preview-value">45.2</div>
-                  <div class="preview-unit">Mbit/s</div>
+                <div class="overlay-speed-item overlay-upload">
+                  <div class="overlay-speed-item-header">
+                    <span class="overlay-arrow">↑</span>
+                    <span class="overlay-item-label">UL</span>
+                    <span class="overlay-speed-value" id="overlay-upload-speed">0.0</span>
+                    <span class="overlay-speed-label">Mbit/s</span>
+                  </div>
+                  <div class="overlay-progress-bar-container">
+                    <div class="overlay-progress-bar">
+                      <div class="overlay-progress-fill" id="overlay-upload-progress-fill"></div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div class="preview-stat upload">
-                <div class="preview-icon">
-                  <i data-lucide="upload"></i>
+                <div class="overlay-speed-item overlay-cpu">
+                  <div class="overlay-speed-item-header">
+                    <span class="overlay-item-label">CPU</span>
+                    <span class="overlay-speed-value" id="overlay-cpu-usage">38.7</span>
+                    <span class="overlay-speed-label">%</span>
+                  </div>
+                  <div class="overlay-cpu-info">
+                    <div class="overlay-cpu-process">
+                      <span class="overlay-speed-label" style="font-size: 10px; opacity: 0.8;"
+                        id="overlay-cpu-process">chrome</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="preview-info">
-                  <div class="preview-label">Upload</div>
-                  <div class="preview-value">12.8</div>
-                  <div class="preview-unit">Mbit/s</div>
-                </div>
-              </div>
-              <div class="preview-stat cpu">
-                <div class="preview-icon">
-                  <i data-lucide="cpu"></i>
-                </div>
-                <div class="preview-info">
-                  <div class="preview-label">CPU Usage</div>
-                  <div class="preview-value">23.5</div>
-                  <div class="preview-unit">%</div>
-                </div>
-              </div>
-              <div class="preview-stat ram">
-                <div class="preview-icon">
-                  <i data-lucide="hard-drive"></i>
-                </div>
-                <div class="preview-info">
-                  <div class="preview-label">RAM Usage</div>
-                  <div class="preview-value">51.3</div>
-                  <div class="preview-unit">%</div>
+                <div class="overlay-speed-item overlay-ram">
+                  <div class="overlay-speed-item-header">
+                    <span class="overlay-item-label">RAM</span>
+                    <span class="overlay-speed-value" id="overlay-ram-usage">51.8</span>
+                    <span class="overlay-speed-label">%</span>
+                  </div>
+                  <div class="overlay-ram-info">
+                    <div class="overlay-ram-process">
+                      <span class="overlay-speed-label" style="font-size: 10px; opacity: 0.8;"
+                        id="overlay-ram-process">chrome</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -143,7 +161,7 @@
           </div>
           <h3 class="feature-title">Real-Time Monitoring</h3>
           <p class="feature-description">
-            Get instant updates on your network speeds every second. See your download and upload rates 
+            Get instant updates on your network speeds every second. See your download and upload rates
             in real-time with precise measurements.
           </p>
         </div>
@@ -153,9 +171,8 @@
           </div>
           <h3 class="feature-title">CPU & RAM Monitoring</h3>
           <p class="feature-description">
-            Monitor your CPU usage percentage, temperature, and RAM usage alongside network stats. 
-            See which processes are consuming the most CPU and memory resources. Smart filtering excludes 
-            system processes like "System Idle Process" and "Memory Compress" so you see actual applications. 
+            Monitor your CPU usage percentage and RAM usage alongside network stats.
+            See which processes are consuming the most resources.
             Keep an eye on system performance at a glance.
           </p>
         </div>
@@ -163,44 +180,38 @@
           <div class="feature-icon">
             <i data-lucide="monitor"></i>
           </div>
-          <h3 class="feature-title">Smart Taskbar Overlay</h3>
+          <h3 class="feature-title">Transparent Taskbar Overlay</h3>
           <p class="feature-description">
-            Always-visible stats right in your taskbar. Shows network speeds, CPU usage, RAM usage, and top processes. 
-            Automatically adjusts size based on enabled features - compact mode when only network stats are shown, 
-            full width when CPU and RAM are enabled. Progress bars intelligently match text width to save space. 
-            No need to open windows or check system tray.
-          </p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i data-lucide="bar-chart-3"></i>
-          </div>
-          <h3 class="feature-title">Detailed Statistics</h3>
-          <p class="feature-description">
-            Open the detailed window to see total data transferred, connection type, 
-            monitoring duration, CPU/RAM usage with top processes, and customizable display options. 
-            More detailed than the compact taskbar overlay.
-          </p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i data-lucide="palette"></i>
-          </div>
-          <h3 class="feature-title">Fully Customizable</h3>
-          <p class="feature-description">
-            Choose your preferred units (kbps, Mbit/s, MB/s), set max speed for progress bars, 
-            and toggle visibility of CPU stats, RAM stats, and progress indicators. 
-            Control what appears in both the stats window and taskbar overlay.
+            Always-visible stats right in your taskbar. Shows network speeds, CPU usage, RAM usage, and top processes.
+            <strong>Fully transparent and frameless</strong> to blend perfectly with your desktop.
           </p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">
             <i data-lucide="zap"></i>
           </div>
-          <h3 class="feature-title">Lightweight & Fast</h3>
+          <h3 class="feature-title">Native Performance</h3>
           <p class="feature-description">
-            Minimal resource usage. WebSpeed runs efficiently in the background without 
-            impacting your system performance.
+            Built with C# and WPF for maximum performance and minimal resource usage.
+            Only 1.8MB in size with minimal memory footprint.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="palette"></i>
+          </div>
+          <h3 class="feature-title">Customizable</h3>
+          <p class="feature-description">
+            Choose your preferred units (Bytes/s, Bits/s), toggle visibility of CPU/RAM stats via system tray menu.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i data-lucide="shield"></i>
+          </div>
+          <h3 class="feature-title">Privacy First</h3>
+          <p class="feature-description">
+            All monitoring happens locally. No data collection, no telemetry, no internet required.
           </p>
         </div>
       </div>
@@ -221,13 +232,14 @@
           </div>
           <h3 class="benefit-title">Security & Malware Detection</h3>
           <p class="benefit-description">
-            <strong>Detect suspicious activity instantly.</strong> If you notice your upload speed is unexpectedly high 
-            while you're not doing anything, it could be a sign of malware, spyware, or unauthorized data transmission. 
-            WebSpeed gives you the visibility to catch these threats early before they cause serious damage.
+            <strong>Detect suspicious activity instantly.</strong> If you notice your upload speed is unexpectedly high
+            while you're not doing anything, it could be a sign of malware, spyware, or unauthorized data transmission.
+            WinWebSpeed gives you the visibility to catch these threats early.
           </p>
           <p class="benefit-description">
-            Malicious software often sends data in the background without your knowledge. With WebSpeed always visible 
-            in your taskbar, you'll immediately notice unusual network activity and can take action to protect your privacy.
+            Malicious software often sends data in the background without your knowledge. With WinWebSpeed always
+            visible
+            in your taskbar, you'll immediately notice unusual network activity.
           </p>
         </div>
         <div class="benefit-card">
@@ -236,13 +248,11 @@
           </div>
           <h3 class="benefit-title">Know If Content Is Actually Loading</h3>
           <p class="benefit-description">
-            Ever wondered if your video stream is buffering or if a download is stuck? WebSpeed shows you exactly 
-            what's happening. See real-time download speeds to know if your content is loading properly or if there's 
-            a connection issue that needs attention.
+            Ever wondered if your video stream is buffering or if a download is stuck? WinWebSpeed shows you exactly
+            what's happening. See real-time download speeds to know if your content is loading properly.
           </p>
           <p class="benefit-description">
-            No more guessing whether your browser is working or if you need to refresh. The numbers don't lie – 
-            you'll see immediately if data is flowing or if something needs troubleshooting.
+            No more guessing whether your browser is working or if you need to refresh. The numbers don't lie.
           </p>
         </div>
         <div class="benefit-card">
@@ -251,22 +261,11 @@
           </div>
           <h3 class="benefit-title">See Your Actual Browsing Speed</h3>
           <p class="benefit-description">
-            Understand your real internet performance as you surf. See how fast pages load, how quickly files download, 
+            Understand your real internet performance as you surf. See how fast pages load, how quickly files download,
             and whether you're getting the speeds you're paying for from your ISP.
           </p>
           <p class="benefit-description">
-            Track your connection quality throughout the day. Identify peak usage times, notice when speeds drop, 
-            and verify if your internet service is performing as advertised.
-          </p>
-        </div>
-        <div class="benefit-card">
-          <div class="benefit-icon">
-            <i data-lucide="hard-drive"></i>
-          </div>
-          <h3 class="benefit-title">Monitor Data Usage</h3>
-          <p class="benefit-description">
-            Keep track of how much data you're transferring. WebSpeed shows total bytes downloaded and uploaded 
-            since monitoring started, helping you stay within data caps and understand your usage patterns.
+            Track your connection quality throughout the day. Identify peak usage times and notice when speeds drop.
           </p>
         </div>
         <div class="benefit-card">
@@ -275,8 +274,8 @@
           </div>
           <h3 class="benefit-title">Troubleshoot Connection Issues</h3>
           <p class="benefit-description">
-            Quickly identify network problems. If speeds suddenly drop to zero or become inconsistent, you'll know 
-            immediately that there's an issue with your connection, router, or service provider.
+            Quickly identify network problems. If speeds suddenly drop to zero or become inconsistent, you'll know
+            immediately that there's an issue with your connection.
           </p>
         </div>
         <div class="benefit-card">
@@ -285,8 +284,18 @@
           </div>
           <h3 class="benefit-title">Optimize Your Network</h3>
           <p class="benefit-description">
-            Make informed decisions about your network usage. See which activities consume the most bandwidth, 
-            identify background processes that might be slowing you down, and optimize your internet experience.
+            Make informed decisions about your network usage. See which activities consume the most bandwidth
+            and identify background processes that might be slowing you down.
+          </p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">
+            <i data-lucide="cpu"></i>
+          </div>
+          <h3 class="benefit-title">Monitor System Performance</h3>
+          <p class="benefit-description">
+            Keep track of CPU and RAM usage to ensure your system is running smoothly.
+            Identify resource-hungry applications at a glance.
           </p>
         </div>
       </div>
@@ -303,18 +312,19 @@
       <div class="steps">
         <div class="step">
           <div class="step-number">1</div>
-          <h3>Download & Install</h3>
-          <p>Get the installer or portable version. No complex setup required.</p>
+          <h3>Download</h3>
+          <p>Get the lightweight executable. Only 1.8MB.</p>
         </div>
         <div class="step">
           <div class="step-number">2</div>
-          <h3>Run in Background</h3>
-          <p>WebSpeed starts automatically and monitors your network continuously.</p>
+          <h3>Run</h3>
+          <p>WinWebSpeed starts instantly and sits in your system tray.</p>
         </div>
         <div class="step">
           <div class="step-number">3</div>
-          <h3>View Your Stats</h3>
-          <p>See real-time network speeds, CPU usage, RAM usage, and top processes in the taskbar overlay or open the detailed window for more information.</p>
+          <h3>Monitor</h3>
+          <p>See real-time network speeds, CPU usage, RAM usage, and top processes in the transparent taskbar overlay.
+          </p>
         </div>
       </div>
     </div>
@@ -326,26 +336,17 @@
       <div class="download-content">
         <h2 class="download-title">Ready to Get Started?</h2>
         <p class="download-description">
-          Download WebSpeed for Windows 10/11. Available as installer or portable version.
+          Download WinWebSpeed for Windows 10/11.
         </p>
         <div class="download-options">
           <div class="download-card">
             <div class="download-icon">
               <i data-lucide="package"></i>
             </div>
-            <h3>Installer</h3>
-            <p>Recommended for most users. Includes automatic startup and easy uninstallation.</p>
-            <a href="#" class="btn btn-primary btn-block">Download Installer</a>
-            <div class="download-meta">Windows 10/11 • Latest Version</div>
-          </div>
-          <div class="download-card">
-            <div class="download-icon">
-              <i data-lucide="briefcase"></i>
-            </div>
-            <h3>Portable</h3>
-            <p>No installation needed. Run directly from any folder. Perfect for USB drives.</p>
-            <a href="#" class="btn btn-secondary btn-block">Download Portable</a>
-            <div class="download-meta">Windows 10/11 • Latest Version</div>
+            <h3>WinWebSpeed</h3>
+            <p>Single executable. Portable and lightweight.</p>
+            <a href="#" class="btn btn-primary btn-block">Download Now</a>
+            <div class="download-meta">Windows 10/11 • Latest Version • 1.8MB</div>
           </div>
         </div>
         <div class="download-note">
@@ -359,13 +360,12 @@
   <section id="about" class="about">
     <div class="container">
       <div class="about-content">
-        <h2 class="section-title">About WebSpeed</h2>
+        <h2 class="section-title">About WinWebSpeed</h2>
         <p class="about-text">
-          WebSpeed was created to provide a simple, elegant solution for monitoring network and system performance 
-          on Windows. Unlike heavy monitoring tools, WebSpeed focuses on what matters: giving you 
-          real-time visibility into your network speeds, CPU usage, RAM usage, and top processes without getting in your way. 
-          With smart filtering that excludes system processes like "System Idle Process" and "Memory Compress", 
-          you see the actual applications consuming your resources.
+          WinWebSpeed was created to provide a simple, elegant solution for monitoring network and system performance
+          on Windows. Built as a native application using C# and WPF, it focuses on
+          performance and efficiency. It gives you real-time visibility into your network speeds, CPU usage,
+          RAM usage, and top processes without consuming valuable system resources.
         </p>
         <div class="about-features">
           <div class="about-feature">
@@ -378,7 +378,7 @@
           </div>
           <div class="about-feature">
             <strong>Free Forever</strong>
-            <p>WebSpeed is completely free with no ads, no premium features, and no limitations.</p>
+            <p>WinWebSpeed is completely free with no ads, no premium features, and no limitations.</p>
           </div>
         </div>
       </div>
@@ -391,8 +391,8 @@
       <div class="footer-content">
         <div class="footer-brand">
           <div class="logo">
-            <span class="logo-icon">⚡</span>
-            <span class="logo-text">WebSpeed</span>
+            <img src="logo.png" alt="WinWebSpeed Logo" class="logo-icon" style="width: 24px; height: 24px;">
+            <span class="logo-text">WinWebSpeed</span>
           </div>
           <p class="footer-tagline">Real-time network monitoring for Windows</p>
         </div>
@@ -417,7 +417,7 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 WebSpeed. Open source under MIT License.</p>
+        <p>&copy; 2024 WinWebSpeed. Open source under MIT License.</p>
       </div>
     </div>
   </footer>
@@ -428,5 +428,5 @@
     lucide.createIcons();
   </script>
 </body>
-</html>
 
+</html>

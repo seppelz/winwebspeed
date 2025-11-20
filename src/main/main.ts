@@ -4,7 +4,8 @@ import { NetworkMonitor } from './network';
 import { CPUMonitor } from './cpu';
 import { SystemTray } from './tray';
 import { TaskbarOverlay } from './taskbar-overlay';
-import { NetworkStats, CPUStats, RAMStats } from '../types';
+import { NetworkStats, CPUStats, RAMStats, SystemStats } from '../types';
+import { logger } from '../utils/logger';
 
 let statsWindow: BrowserWindow | null = null;
 let tray: SystemTray | null = null;
@@ -15,6 +16,7 @@ let isQuitting = false;
 let lastStats: NetworkStats | null = null;
 let lastCPUStats: CPUStats | null = null;
 let lastRAMStats: RAMStats | null = null;
+let lastSystemStats: SystemStats | null = null;
 
 function createWindow(): void {
   statsWindow = new BrowserWindow({
@@ -68,7 +70,7 @@ function createWindow(): void {
 
   // Ensure window is ready before sending stats
   statsWindow.webContents.once('did-finish-load', () => {
-    console.log('Stats window loaded and ready');
+    logger.log('Stats window loaded and ready');
   });
 
   // Hide window on close (minimize to tray)
@@ -118,7 +120,7 @@ function initializeApp(): void {
     }
   });
 
-  // Initialize CPU monitor with RAM callback
+  // Initialize CPU monitor with RAM and System callbacks
   cpuMonitor = new CPUMonitor(
     (stats: CPUStats) => {
       lastCPUStats = stats;
@@ -145,16 +147,29 @@ function initializeApp(): void {
       if (taskbarOverlay) {
         taskbarOverlay.updateRAMStats(stats);
       }
+    },
+    (stats: SystemStats) => {
+      lastSystemStats = stats;
+      
+      // Send System stats to renderer
+      if (statsWindow && !statsWindow.isDestroyed()) {
+        statsWindow.webContents.send('system-stats-update', stats);
+      }
+      
+      // Update taskbar overlay with System stats
+      if (taskbarOverlay) {
+        taskbarOverlay.updateSystemStats(stats);
+      }
     }
   );
 
   // Start monitoring
   networkMonitor.start().catch((error) => {
-    console.error('Failed to start network monitoring:', error);
+    logger.error('Failed to start network monitoring:', error);
   });
 
   cpuMonitor.start().catch((error) => {
-    console.error('Failed to start CPU monitoring:', error);
+    logger.error('Failed to start CPU monitoring:', error);
   });
 }
 
@@ -245,6 +260,12 @@ ipcMain.on('request-stats-update', (event) => {
   }
   if (lastRAMStats && taskbarOverlay) {
     taskbarOverlay.updateRAMStats(lastRAMStats);
+  }
+  if (lastSystemStats && statsWindow && !statsWindow.isDestroyed()) {
+    statsWindow.webContents.send('system-stats-update', lastSystemStats);
+  }
+  if (lastSystemStats && taskbarOverlay) {
+    taskbarOverlay.updateSystemStats(lastSystemStats);
   }
 });
 

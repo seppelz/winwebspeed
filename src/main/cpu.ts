@@ -1,15 +1,18 @@
 import * as si from 'systeminformation';
-import { CPUStats, RAMStats } from '../types';
+import { CPUStats, RAMStats, SystemStats } from '../types';
+import { logger } from '../utils/logger';
 
 export class CPUMonitor {
   private updateInterval: NodeJS.Timeout | null = null;
   private callback: (stats: CPUStats) => void;
   private ramCallback: ((stats: RAMStats) => void) | null = null;
+  private systemCallback: ((stats: SystemStats) => void) | null = null;
   private isRunning: boolean = false;
 
-  constructor(callback: (stats: CPUStats) => void, ramCallback?: (stats: RAMStats) => void) {
+  constructor(callback: (stats: CPUStats) => void, ramCallback?: (stats: RAMStats) => void, systemCallback?: (stats: SystemStats) => void) {
     this.callback = callback;
     this.ramCallback = ramCallback || null;
+    this.systemCallback = systemCallback || null;
   }
 
   async start(): Promise<void> {
@@ -24,7 +27,7 @@ export class CPUMonitor {
       // Wait a short moment for the baseline to be established
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
-      console.error('Error establishing CPU baseline:', error);
+      logger.error('Error establishing CPU baseline:', error);
     }
     
     // Get initial stats after baseline is established
@@ -55,16 +58,79 @@ export class CPUMonitor {
       ]);
 
       // Get CPU usage percentage
+      // Use currentLoadUser + currentLoadSystem to match Task Manager more closely
+      // Task Manager shows user + system CPU time, excluding I/O wait and other factors
       let usage: number | null = null;
-      if (cpuUsage && cpuUsage.currentLoad !== null && cpuUsage.currentLoad !== undefined) {
-        usage = Math.round(cpuUsage.currentLoad * 10) / 10; // Round to 1 decimal place
+      if (cpuUsage) {
+        const userLoad = cpuUsage.currentLoadUser || 0;
+        const systemLoad = cpuUsage.currentLoadSystem || 0;
+        const totalLoad = userLoad + systemLoad;
+        
+        // Cap at 100% to avoid any calculation errors
+        if (totalLoad >= 0 && totalLoad <= 100) {
+          usage = Math.round(totalLoad * 10) / 10; // Round to 1 decimal place
+        } else if (cpuUsage.currentLoad !== null && cpuUsage.currentLoad !== undefined) {
+          // Fallback to currentLoad if the calculation seems off
+          usage = Math.round(cpuUsage.currentLoad * 10) / 10;
+        }
       }
       
       // Get CPU temperature (in Celsius)
+      // Try multiple sources: main, cores, max, socket, chipset
       let temperature: number | null = null;
-      if (cpuTemp && cpuTemp.main !== null && cpuTemp.main !== undefined) {
-        temperature = Math.round(cpuTemp.main * 10) / 10; // Round to 1 decimal place
+      if (cpuTemp) {
+        const cpuTempAny = cpuTemp as any;
+        
+        // Try main temperature first
+        if (cpuTemp.main !== null && cpuTemp.main !== undefined && cpuTemp.main > 0) {
+          temperature = Math.round(cpuTemp.main * 10) / 10;
+          logger.debug('Using CPU temperature from main:', temperature);
+        }
+        // If main is not available, try max temperature
+        else if (cpuTemp.max !== null && cpuTemp.max !== undefined && cpuTemp.max > 0) {
+          temperature = Math.round(cpuTemp.max * 10) / 10;
+          logger.debug('Using CPU temperature from max:', temperature);
+        }
+        // Try cores array (get highest core temperature)
+        else if (cpuTemp.cores && Array.isArray(cpuTemp.cores) && cpuTemp.cores.length > 0) {
+          const validTemps = cpuTemp.cores.filter((t: number) => t !== null && t !== undefined && t > 0);
+          if (validTemps.length > 0) {
+            const maxCoreTemp = Math.max(...validTemps);
+            temperature = Math.round(maxCoreTemp * 10) / 10;
+            logger.debug('Using CPU temperature from cores:', temperature);
+          }
+        }
+        // Try socket temperatures (some AMD systems expose this)
+        else if (cpuTempAny.socket && Array.isArray(cpuTempAny.socket) && cpuTempAny.socket.length > 0) {
+          const validTemps = cpuTempAny.socket.filter((t: number) => t !== null && t !== undefined && t > 0);
+          if (validTemps.length > 0) {
+            const maxSocketTemp = Math.max(...validTemps);
+            temperature = Math.round(maxSocketTemp * 10) / 10;
+            logger.debug('Using CPU temperature from socket:', temperature);
+          }
+        }
+        // Try chipset temperature (some systems expose this)
+        else if (cpuTempAny.chipset !== null && cpuTempAny.chipset !== undefined && cpuTempAny.chipset > 0) {
+          temperature = Math.round(cpuTempAny.chipset * 10) / 10;
+          logger.debug('Using CPU temperature from chipset:', temperature);
+        }
+        
+        // Log for debugging if temperature is still null
+        if (temperature === null) {
+          logger.debug('CPU temperature not available. Raw data:', JSON.stringify(cpuTemp));
+          logger.debug('This may require:');
+          logger.debug('1. Running the app as Administrator');
+          logger.debug('2. Proper AMD chipset drivers installed');
+          logger.debug('3. Hardware sensor support on your ThinkPad model');
+        }
+      } else {
+        logger.debug('CPU temperature API returned null/undefined - check if systeminformation can access sensors');
       }
+      
+      // Get system temperature - use CPU temperature as system temperature
+      // For most systems, CPU temperature is the best indicator of system temperature
+      // On laptops, this represents the overall system thermal state
+      let systemTemperature: number | null = temperature;
 
       // Find top CPU process
       let topProcess: string | null = null;
@@ -138,6 +204,13 @@ export class CPUMonitor {
         topProcess,
         topProcessUsage
       });
+      
+      // Send system stats (temperature only)
+      if (this.systemCallback) {
+        this.systemCallback({
+          temperature: systemTemperature
+        });
+      }
 
       // Get RAM usage and top memory process
       if (this.ramCallback) {
@@ -226,7 +299,7 @@ export class CPUMonitor {
         });
       }
     } catch (error) {
-      console.error('Error updating CPU stats:', error);
+      logger.error('Error updating CPU stats:', error);
       // Send null values on error
       this.callback({
         usage: null,
@@ -240,6 +313,12 @@ export class CPUMonitor {
           usage: null,
           topProcess: null,
           topProcessUsage: null
+        });
+      }
+      
+      if (this.systemCallback) {
+        this.systemCallback({
+          temperature: null
         });
       }
     }

@@ -1,6 +1,44 @@
 // Renderer script
 export {};
 
+// Browser-compatible logger - disables logging in production builds
+// Check if we're in a packaged Electron app (production)
+const isProduction = (() => {
+  try {
+    // In Electron renderer, we can check if we're packaged
+    return !!(window as any).__ELECTRON_IS_PACKAGED__ || 
+           !location.href.includes('file://') || 
+           location.href.includes('app.asar');
+  } catch {
+    return false;
+  }
+})();
+
+const logger = {
+  log: (...args: any[]): void => {
+    if (!isProduction) {
+      console.log(...args);
+    }
+  },
+  
+  error: (...args: any[]): void => {
+    // Always log errors, even in production
+    console.error(...args);
+  },
+  
+  warn: (...args: any[]): void => {
+    if (!isProduction) {
+      console.warn(...args);
+    }
+  },
+  
+  debug: (...args: any[]): void => {
+    if (!isProduction) {
+      console.debug(...args);
+    }
+  }
+};
+
 // Declare the electronAPI type
 declare global {
   interface Window {
@@ -8,6 +46,7 @@ declare global {
       onNetworkStatsUpdate: (callback: (stats: NetworkStats) => void) => void;
       onCPUStatsUpdate: (callback: (stats: CPUStats) => void) => void;
       onRAMStatsUpdate: (callback: (stats: RAMStats) => void) => void;
+      onSystemStatsUpdate: (callback: (stats: SystemStats) => void) => void;
       requestStatsUpdate?: () => void;
       removeAllListeners: (channel: string) => void;
     };
@@ -38,6 +77,10 @@ interface RAMStats {
   usage: number | null; // RAM usage percentage (0-100)
   topProcess: string | null; // Name of the process using most RAM (first 15 chars + ...)
   topProcessUsage: number | null; // RAM usage in MB of the top process
+}
+
+interface SystemStats {
+  temperature: number | null; // System temperature in Celsius (from sensors)
 }
 
 // Convert kbps to different units
@@ -73,26 +116,48 @@ function kbpsToMbps(kbps: number): number {
   return kbps / 1000;
 }
 
+// Validate and sanitize max speed input
+function validateMaxSpeed(value: number): number {
+  // Ensure value is a valid number, positive, and within reasonable bounds (1-10000 Mbit/s)
+  if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+    return 100; // Default
+  }
+  if (value <= 0) {
+    return 1; // Minimum
+  }
+  if (value > 10000) {
+    return 10000; // Maximum
+  }
+  // Round to 2 decimal places to prevent precision issues
+  return Math.round(value * 100) / 100;
+}
+
 // Get max speed from input or localStorage
 function getMaxSpeed(): number {
   const input = document.getElementById('max-speed-input') as HTMLInputElement;
   if (input) {
     const value = parseFloat(input.value);
-    // Validate: must be a number, positive, and within reasonable bounds (1-10000 Mbit/s)
-    if (!isNaN(value) && value > 0 && value <= 10000 && isFinite(value)) {
-      localStorage.setItem('webspeed-max-speed', value.toString());
-      return value;
+    const validated = validateMaxSpeed(value);
+    
+    // If value was invalid, update the input field
+    if (validated !== value) {
+      input.value = validated.toString();
     }
-    // If invalid, reset to default and update input
-    input.value = '100';
+    
+    // Store validated value
+    localStorage.setItem('webspeed-max-speed', validated.toString());
+    return validated;
   }
   // Try to get from localStorage
   const stored = localStorage.getItem('webspeed-max-speed');
   if (stored) {
     const value = parseFloat(stored);
-    if (!isNaN(value) && value > 0 && value <= 10000 && isFinite(value)) {
-      return value;
+    const validated = validateMaxSpeed(value);
+    if (validated !== value) {
+      // Update localStorage with validated value
+      localStorage.setItem('webspeed-max-speed', validated.toString());
     }
+    return validated;
   }
   return 100; // Default 100 Mbit/s
 }
@@ -117,21 +182,36 @@ function formatBytes(bytes: number): string {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
+// Validate unit value
+function validateUnit(unit: string): 'kbps' | 'mbps' | 'mbs' {
+  // Only allow specific unit values
+  if (unit === 'kbps' || unit === 'mbps' || unit === 'mbs') {
+    return unit;
+  }
+  return 'mbps'; // Default to Mbit/s if invalid
+}
+
 // Get selected unit
 function getSelectedUnit(): string {
   const unitSelect = document.getElementById('unit-select') as HTMLSelectElement;
   if (unitSelect) {
-    const unit = unitSelect.value;
-    // Validate unit is one of the allowed values
-    if (['kbps', 'mbps', 'mbs'].includes(unit)) {
-      localStorage.setItem('webspeed-unit', unit);
-      return unit;
+    const unit = validateUnit(unitSelect.value);
+    // If unit was invalid, update the select
+    if (unit !== unitSelect.value) {
+      unitSelect.value = unit;
     }
+    localStorage.setItem('webspeed-unit', unit);
+    return unit;
   }
   // Try to get from localStorage
   const stored = localStorage.getItem('webspeed-unit');
-  if (stored && ['kbps', 'mbps', 'mbs'].includes(stored)) {
-    return stored;
+  if (stored) {
+    const validated = validateUnit(stored);
+    if (validated !== stored) {
+      // Update localStorage with validated value
+      localStorage.setItem('webspeed-unit', validated);
+    }
+    return validated;
   }
   return 'mbps'; // Default
 }
@@ -293,20 +373,36 @@ function updateCPUStats(stats: CPUStats): void {
     }
   }
   
-  // Update CPU temperature
+  // Update CPU temperature (only if enabled and available)
   const cpuTempElement = document.getElementById('cpu-temperature');
   const cpuTempContainer = document.getElementById('cpu-temp-container');
+  const showCPUTempCheckbox = document.getElementById('show-cpu-temp') as HTMLInputElement;
+  const showCPUTemp = showCPUTempCheckbox?.checked ?? false;
+  const showCPUCheckbox = document.getElementById('show-cpu') as HTMLInputElement;
+  const showCPU = showCPUCheckbox?.checked ?? false;
+  
+  // Only show temperature if both CPU stats and temperature are enabled
   if (cpuTempElement && cpuTempContainer) {
-    if (stats.temperature !== null && stats.temperature !== undefined) {
-      cpuTempElement.textContent = stats.temperature.toFixed(1);
+    // Only update display if both CPU stats and temperature are enabled
+    if (showCPUTemp && showCPU) {
+      // Container should already be visible from checkbox handler, but ensure it's visible
       cpuTempContainer.style.display = 'block';
-      cpuTempElement.classList.add('updating');
-      setTimeout(() => {
-        cpuTempElement.classList.remove('updating');
-      }, 500);
+      
+      // Update the value if data is available
+      if (stats.temperature !== null && stats.temperature !== undefined) {
+        cpuTempElement.textContent = stats.temperature.toFixed(1);
+        cpuTempElement.classList.add('updating');
+        setTimeout(() => {
+          cpuTempElement.classList.remove('updating');
+        }, 500);
+      } else {
+        // Show placeholder if data isn't available yet
+        cpuTempElement.textContent = '--';
+      }
     } else {
-      cpuTempElement.textContent = '--';
+      // Hide if either CPU stats or temperature toggle is disabled
       cpuTempContainer.style.display = 'none';
+      cpuTempElement.textContent = '--';
     }
   }
   
@@ -377,13 +473,29 @@ function updateRAMStats(stats: RAMStats): void {
   }
 }
 
+function updateSystemStats(stats: SystemStats): void {
+  // Update system temperature
+  const systemTempElement = document.getElementById('system-temperature');
+  if (systemTempElement) {
+    if (stats.temperature !== null && stats.temperature !== undefined) {
+      systemTempElement.textContent = stats.temperature.toFixed(1);
+      systemTempElement.classList.add('updating');
+      setTimeout(() => {
+        systemTempElement.classList.remove('updating');
+      }, 500);
+    } else {
+      systemTempElement.textContent = '--';
+    }
+  }
+}
+
 // Initialize the renderer
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('WebSpeed renderer initialized');
-  console.log('DOM elements check:');
-  console.log('  download-speed:', !!document.getElementById('download-speed'));
-  console.log('  upload-speed:', !!document.getElementById('upload-speed'));
-  console.log('  window.electronAPI:', !!window.electronAPI);
+  logger.log('WebSpeed renderer initialized');
+  logger.debug('DOM elements check:');
+  logger.debug('  download-speed:', !!document.getElementById('download-speed'));
+  logger.debug('  upload-speed:', !!document.getElementById('upload-speed'));
+  logger.debug('  window.electronAPI:', !!window.electronAPI);
   
   // Initialize Lucide icons immediately
   if (window.lucide) {
@@ -401,11 +513,31 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // Update progress bars when max speed changes
+    // Update progress bars when max speed changes with validation
     maxSpeedInput.addEventListener('input', () => {
+      const value = parseFloat(maxSpeedInput.value);
+      const validated = validateMaxSpeed(value);
+      
+      // If value was invalid, update the input field immediately
+      if (validated !== value || isNaN(value)) {
+        maxSpeedInput.value = validated.toString();
+      }
+      
       const maxSpeed = getMaxSpeed();
       // Trigger a stats update to recalculate progress bars
-      // This will be handled by the next stats update
+      if (window.electronAPI && window.electronAPI.requestStatsUpdate) {
+        window.electronAPI.requestStatsUpdate();
+      }
+    });
+    
+    // Validate on blur as well
+    maxSpeedInput.addEventListener('blur', () => {
+      const value = parseFloat(maxSpeedInput.value);
+      const validated = validateMaxSpeed(value);
+      if (validated !== value || isNaN(value)) {
+        maxSpeedInput.value = validated.toString();
+        localStorage.setItem('webspeed-max-speed', validated.toString());
+      }
     });
   }
   
@@ -418,6 +550,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     unitSelect.addEventListener('change', () => {
+      // Validate unit on change
+      const validated = validateUnit(unitSelect.value);
+      if (validated !== unitSelect.value) {
+        unitSelect.value = validated;
+      }
+      localStorage.setItem('webspeed-unit', validated);
+      
       // Trigger immediate update with new unit
       if (window.electronAPI && window.electronAPI.requestStatsUpdate) {
         window.electronAPI.requestStatsUpdate();
@@ -471,6 +610,79 @@ document.addEventListener('DOMContentLoaded', () => {
           window.lucide?.createIcons();
         }, 10);
       }
+      // Request stats update to refresh display
+      if (window.electronAPI && window.electronAPI.requestStatsUpdate) {
+        window.electronAPI.requestStatsUpdate();
+      }
+      // Update taskbar overlay visibility (it reads from localStorage)
+    });
+  }
+  
+  // Load CPU temperature visibility preference
+  const showCPUTempCheckbox = document.getElementById('show-cpu-temp') as HTMLInputElement;
+  const cpuTempContainer = document.getElementById('cpu-temp-container');
+  if (showCPUTempCheckbox && cpuTempContainer) {
+    const stored = localStorage.getItem('webspeed-show-cpu-temp');
+    if (stored !== null) {
+      showCPUTempCheckbox.checked = stored === 'true';
+    } else {
+      // Default to false (hidden)
+      showCPUTempCheckbox.checked = false;
+      localStorage.setItem('webspeed-show-cpu-temp', 'false');
+    }
+    
+    // Set initial visibility
+    cpuTempContainer.style.display = showCPUTempCheckbox.checked ? 'block' : 'none';
+    
+    showCPUTempCheckbox.addEventListener('change', () => {
+      const isChecked = showCPUTempCheckbox.checked;
+      localStorage.setItem('webspeed-show-cpu-temp', isChecked.toString());
+      // Update visibility in stats window immediately
+      // Always show container when enabled, even if data isn't available yet
+      if (isChecked) {
+        cpuTempContainer.style.display = 'block';
+      } else {
+        cpuTempContainer.style.display = 'none';
+      }
+      // Trigger stats update to refresh temperature display
+      if (window.electronAPI && window.electronAPI.requestStatsUpdate) {
+        window.electronAPI.requestStatsUpdate();
+      }
+      // Update taskbar overlay visibility (it reads from localStorage)
+    });
+  }
+  
+  // Load System stats visibility preference
+  const showSystemCheckbox = document.getElementById('show-system') as HTMLInputElement;
+  const systemStatCard = document.getElementById('system-stat-card');
+  if (showSystemCheckbox && systemStatCard) {
+    const stored = localStorage.getItem('webspeed-show-system');
+    if (stored !== null) {
+      showSystemCheckbox.checked = stored === 'true';
+    } else {
+      // Default to false (hidden)
+      showSystemCheckbox.checked = false;
+      localStorage.setItem('webspeed-show-system', 'false');
+    }
+    
+    // Set initial visibility
+    systemStatCard.style.display = showSystemCheckbox.checked ? 'flex' : 'none';
+    
+    showSystemCheckbox.addEventListener('change', () => {
+      const isChecked = showSystemCheckbox.checked;
+      localStorage.setItem('webspeed-show-system', isChecked.toString());
+      // Update visibility in stats window immediately
+      systemStatCard.style.display = isChecked ? 'flex' : 'none';
+      // Reinitialize Lucide icons when card is shown
+      if (isChecked && window.lucide) {
+        setTimeout(() => {
+          window.lucide?.createIcons();
+        }, 10);
+      }
+      // Request stats update to refresh display
+      if (window.electronAPI && window.electronAPI.requestStatsUpdate) {
+        window.electronAPI.requestStatsUpdate();
+      }
       // Update taskbar overlay visibility (it reads from localStorage)
     });
   }
@@ -502,6 +714,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
           window.lucide?.createIcons();
         }, 10);
+      }
+      // Request stats update to refresh display
+      if (window.electronAPI && window.electronAPI.requestStatsUpdate) {
+        window.electronAPI.requestStatsUpdate();
       }
       // Update taskbar overlay visibility (it reads from localStorage)
     });
@@ -568,32 +784,49 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Listen for network stats updates from main process
   if (window.electronAPI) {
-    console.log('Setting up network stats listener...');
+    logger.log('Setting up network stats listener...');
     window.electronAPI.onNetworkStatsUpdate((stats: NetworkStats) => {
-      console.log('Received network stats update:', stats);
+      logger.debug('Received network stats update:', stats);
       updateStats(stats);
     });
-    console.log('Network stats listener set up successfully');
+    logger.log('Network stats listener set up successfully');
     
     // Listen for CPU stats updates from main process
-    console.log('Setting up CPU stats listener...');
+    logger.log('Setting up CPU stats listener...');
     window.electronAPI.onCPUStatsUpdate((stats: CPUStats) => {
-      console.log('Received CPU stats update:', stats);
+      logger.debug('Received CPU stats update:', stats);
       updateCPUStats(stats);
     });
-    console.log('CPU stats listener set up successfully');
+    logger.log('CPU stats listener set up successfully');
     
     // Listen for RAM stats updates from main process
     if (window.electronAPI.onRAMStatsUpdate) {
-      console.log('Setting up RAM stats listener...');
+      logger.log('Setting up RAM stats listener...');
       window.electronAPI.onRAMStatsUpdate((stats: RAMStats) => {
-        console.log('Received RAM stats update:', stats);
+        logger.debug('Received RAM stats update:', stats);
         updateRAMStats(stats);
       });
-      console.log('RAM stats listener set up successfully');
+      logger.log('RAM stats listener set up successfully');
+    }
+    
+    // Listen for System stats updates from main process
+    if (window.electronAPI.onSystemStatsUpdate) {
+      logger.log('Setting up System stats listener...');
+      window.electronAPI.onSystemStatsUpdate((stats: SystemStats) => {
+        logger.debug('Received System stats update:', stats);
+        updateSystemStats(stats);
+      });
+      logger.log('System stats listener set up successfully');
+    }
+    
+    // Request initial stats to populate the UI
+    if (window.electronAPI.requestStatsUpdate) {
+      setTimeout(() => {
+        window.electronAPI.requestStatsUpdate?.();
+      }, 500); // Wait a bit for everything to initialize
     }
   } else {
-    console.error('window.electronAPI is not available!');
+    logger.error('window.electronAPI is not available!');
   }
 });
 

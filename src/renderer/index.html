@@ -44,6 +44,18 @@
             Show CPU Stats
           </label>
         </div>
+        <div class="cpu-temp-toggle">
+          <label>
+            <input type="checkbox" id="show-cpu-temp">
+            Show CPU Temperature
+          </label>
+        </div>
+        <div class="system-toggle">
+          <label>
+            <input type="checkbox" id="show-system">
+            Show System Stats
+          </label>
+        </div>
         <div class="ram-toggle">
           <label>
             <input type="checkbox" id="show-ram">
@@ -122,6 +134,17 @@
               <div class="process-name" id="ram-process-name" style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">--</div>
               <div class="process-usage" id="ram-process-usage" style="font-size: 12px; opacity: 0.9;">--</div>
             </div>
+          </div>
+        </div>
+        
+        <div class="stat-card system" id="system-stat-card" style="display: none;">
+          <div class="stat-icon">
+            <i data-lucide="gauge"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">System Temperature</div>
+            <div class="stat-value" id="system-temperature">--</div>
+            <div class="stat-unit">°C</div>
           </div>
         </div>
       </div>

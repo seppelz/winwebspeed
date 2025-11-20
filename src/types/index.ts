@@ -28,4 +28,8 @@ export interface RAMStats {
   topProcessUsage: number | null; // RAM usage in MB of the top process
 }
 
+export interface SystemStats {
+  temperature: number | null; // System temperature in Celsius (from sensors)
+}
+
 

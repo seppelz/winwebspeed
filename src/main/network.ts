@@ -1,6 +1,7 @@
 import * as os from 'os';
 import * as si from 'systeminformation';
 import { NetworkStats, NetworkInterface } from '../types';
+import { logger } from '../utils/logger';
 
 export class NetworkMonitor {
   private previousStats: Map<string, NetworkInterface> = new Map();
@@ -69,7 +70,7 @@ export class NetworkMonitor {
       this.initialDownloadBytes = totalInitialDownload;
       this.initialUploadBytes = totalInitialUpload;
     } catch (error) {
-      console.error('Error collecting initial stats:', error);
+      logger.error('Error collecting initial stats:', error);
     }
   }
 
@@ -178,7 +179,7 @@ export class NetworkMonitor {
         monitoringStartTime: this.monitoringStartTime
       });
     } catch (error) {
-      console.error('Error updating network stats:', error);
+      logger.error('Error updating network stats:', error);
       // Send zero speeds on error
       this.callback({
         downloadSpeed: 0,
