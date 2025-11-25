@@ -77,5 +77,5 @@ Edit `index.html` to customize:
 
 ## License
 
- (MIT)
+MIT
 

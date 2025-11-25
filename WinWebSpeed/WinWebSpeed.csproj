@@ -24,12 +24,11 @@
     <EmbeddedResource Include="logo.png" />
     <EmbeddedResource Include="logo.ico" />
   </ItemGroup>
-<ItemGroup>
-    <None Update="logo.ico">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="logo.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+  
+  <ItemGroup>
+    <!-- Ensure logo.ico is included as content for the application icon -->
+    <Content Include="logo.ico">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>
