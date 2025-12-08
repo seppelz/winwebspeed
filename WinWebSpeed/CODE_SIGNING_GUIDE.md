@@ -4,6 +4,16 @@
 
 Microsoft Defender SmartScreen is showing a warning because the executable is not code-signed. This is a security feature that protects users from potentially malicious software.
 
+### Why It Started Appearing Recently
+
+If the warning didn't appear before but does now, it's likely because:
+1. **The old executable had reputation**: Windows had built up trust for the previous file hash
+2. **Rebuild changed the hash**: Every rebuild creates a new file hash (due to timestamps, build IDs, etc.)
+3. **Lost reputation**: Windows sees the new executable as a completely different file without reputation
+4. **This is normal**: Without code signing, each new build loses reputation and needs to build it again
+
+**The only permanent solution is code signing**, which maintains reputation across all builds.
+
 ## Why Code Signing Matters
 
 1. **User Trust**: Signed executables show the publisher name instead of "Unknown Publisher"
@@ -15,11 +25,19 @@ Microsoft Defender SmartScreen is showing a warning because the executable is no
 
 ### Option 1: Purchase a Code Signing Certificate (Recommended for Public Release)
 
-**Cost**: $200-400/year (varies by provider)
+**Cost**: $211-386/year (varies by provider)
+
+**Most Affordable Options**:
+- **Comodo/Sectigo**: ~$211-226/year ⭐ Best Value
+- **Certera**: ~$216/year
+- **DigiCert**: ~$386/year (Premium option)
+
+**See**: `AFFORDABLE_CODE_SIGNING.md` for detailed pricing, resellers, and recommendations
 
 **Providers**:
-- **DigiCert**: https://www.digicert.com/code-signing/
 - **Sectigo (formerly Comodo)**: https://sectigo.com/ssl-certificates-tls/code-signing
+- **DigiCert**: https://www.digicert.com/code-signing/
+- **Certera**: https://certera.com/code-signing/
 - **GlobalSign**: https://www.globalsign.com/en/code-signing-certificate
 - **Certum**: https://www.certum.eu/en/code-signing-certificate/
 
@@ -82,8 +100,11 @@ dotnet publish -c Release -p:CertificatePath="path\to\cert.pfx" -p:CertificatePa
 ## Recommendations
 
 1. **For Public Release**: Purchase a code signing certificate from a trusted CA
+   - **Best Value**: Comodo/Sectigo (~$211/year) - See `AFFORDABLE_CODE_SIGNING.md`
+   - **Premium**: DigiCert (~$386/year) for highest trust level
 2. **For Testing**: Use a self-signed certificate (users will still see warnings)
 3. **For Open Source**: Consider using GitHub Sponsors or similar to fund a code signing certificate
+4. **Budget-Conscious**: Check `AFFORDABLE_CODE_SIGNING.md` for cost-saving tips and reseller recommendations
 
 ## Additional Resources
 

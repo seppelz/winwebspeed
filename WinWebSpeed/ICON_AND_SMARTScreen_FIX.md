@@ -22,7 +22,13 @@
 
 **Problem**: Microsoft Defender SmartScreen shows: "Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your PC at risk."
 
-**Root Cause**: The executable is not code-signed. SmartScreen blocks unsigned executables from unknown publishers as a security measure.
+**Why It Started Appearing**: 
+- The old executable had built up reputation with Windows SmartScreen over time
+- When the executable was rebuilt (especially with recent changes like the icon fix), the file hash changed
+- Windows now sees it as a completely new file without reputation
+- **This is normal behavior** - every rebuild creates a new file hash, and Windows loses the reputation
+
+**Root Cause**: The executable is not code-signed. SmartScreen blocks unsigned executables from unknown publishers as a security measure. Without code signing, each rebuild loses reputation.
 
 **Solution Options**:
 
