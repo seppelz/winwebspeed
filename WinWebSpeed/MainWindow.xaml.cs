@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private int _maxSpeed = 100;
     private const string RegistryKeyName = "WinWebSpeed";
     private string? _pendingUpdateUrl;
+    private bool _isUserDraggingWindow;
 
     private System.Diagnostics.PerformanceCounter? _cpuCounter;
     private readonly Dictionary<int, TimeSpan> _prevProcessorTimes = new();
@@ -87,9 +88,12 @@ public partial class MainWindow : Window
 
     private void MainWindow_LocationChanged(object? sender, EventArgs e)
     {
-        _settings.WindowX = Left;
-        _settings.WindowY = Top;
-        _settings.Save();
+        if (!_isUserDraggingWindow || !IsLoaded)
+        {
+            return;
+        }
+
+        PersistWindowPosition();
     }
 
     private void InitializePerformanceCounters()
@@ -662,19 +666,33 @@ public partial class MainWindow : Window
     {
         if (e.ButtonState == MouseButtonState.Pressed)
         {
-            DragMove();
+            _isUserDraggingWindow = true;
+            try
+            {
+                DragMove();
+            }
+            finally
+            {
+                _isUserDraggingWindow = false;
+                PersistWindowPosition();
+            }
         }
     }
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        _settings.WindowX = Left;
-        _settings.WindowY = Top;
         _settings.Save();
         _notifyIcon?.Dispose();
         _cpuCounter?.Dispose();
         _statsTimer.Stop();
         _topmostTimer.Stop();
         base.OnClosing(e);
+    }
+
+    private void PersistWindowPosition()
+    {
+        _settings.WindowX = Left;
+        _settings.WindowY = Top;
+        _settings.Save();
     }
 }
