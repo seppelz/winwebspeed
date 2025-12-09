@@ -1,0 +1,13 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+C:\Users\sebas\OneDrive\Desktop\Code\Netspeed\WinWebSpeed\MainWindow.xaml.cs(529,17): error CS7036: There is no argument given that corresponds to the required parameter 'updateTopProcesses' of 'MainWindow.UpdateCpuRamDisplay(bool)' [C:\Users\sebas\OneDrive\Desktop\Code\Netspeed\WinWebSpeed\WinWebSpeed_tzsrs4gs_wpftmp.csproj]
+C:\Users\sebas\OneDrive\Desktop\Code\Netspeed\WinWebSpeed\MainWindow.xaml.cs(40,18): warning CS0414: The field 'MainWindow._isUserDraggingWindow' is assigned but its value is never used [C:\Users\sebas\OneDrive\Desktop\Code\Netspeed\WinWebSpeed\WinWebSpeed_tzsrs4gs_wpftmp.csproj]
+
+Build FAILED.
+
+C:\Users\sebas\OneDrive\Desktop\Code\Netspeed\WinWebSpeed\MainWindow.xaml.cs(40,18): warning CS0414: The field 'MainWindow._isUserDraggingWindow' is assigned but its value is never used [C:\Users\sebas\OneDrive\Desktop\Code\Netspeed\WinWebSpeed\WinWebSpeed_tzsrs4gs_wpftmp.csproj]
+C:\Users\sebas\OneDrive\Desktop\Code\Netspeed\WinWebSpeed\MainWindow.xaml.cs(529,17): error CS7036: There is no argument given that corresponds to the required parameter 'updateTopProcesses' of 'MainWindow.UpdateCpuRamDisplay(bool)' [C:\Users\sebas\OneDrive\Desktop\Code\Netspeed\WinWebSpeed\WinWebSpeed_tzsrs4gs_wpftmp.csproj]
+    1 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:01.86

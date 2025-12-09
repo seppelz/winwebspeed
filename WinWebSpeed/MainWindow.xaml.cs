@@ -24,7 +24,6 @@ public partial class MainWindow : Window
     // Low-priority timer for non-critical UI updates (staying on top)
     private readonly DispatcherTimer _topmostTimer;
 
-    private NetworkInterface? _activeInterface;
     private long _prevBytesReceived;
     private long _prevBytesSent;
     private const int UpdateInterval = 1000; // 1 second
@@ -38,11 +37,18 @@ public partial class MainWindow : Window
     private int _maxSpeed = 100;
     private const string RegistryKeyName = "WinWebSpeed";
     private string? _pendingUpdateUrl;
-    private bool _isUserDraggingWindow;
+    // private bool _isUserDraggingWindow; // Removed unused field
 
     private System.Diagnostics.PerformanceCounter? _cpuCounter;
     private readonly Dictionary<int, TimeSpan> _prevProcessorTimes = new();
     private DateTime _prevTime = DateTime.Now;
+    
+    // Optimization: Only scan processes every N seconds
+    private int _processUpdateTickCounter = 0;
+    private const int ProcessUpdateIntervalTicks = 3; 
+
+    // Network Selection
+    private NetworkInterface? _primaryInterface;
 
     public MainWindow()
     {
@@ -69,7 +75,11 @@ public partial class MainWindow : Window
         InitializeTrayIcon();
         InitializePerformanceCounters();
         Loaded += MainWindow_Loaded;
-        LocationChanged += MainWindow_LocationChanged;
+        // Optimization: Don't save on every pixel move. 'Window_MouseLeftButtonDown' handles the save on drop.
+        // LocationChanged += MainWindow_LocationChanged; 
+        
+        NetworkChange.NetworkAddressChanged += NetworkChange_NetworkAddressChanged;
+        SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
 
         if (!double.IsNaN(_settings.WindowX) && !double.IsNaN(_settings.WindowY))
         {
@@ -86,13 +96,27 @@ public partial class MainWindow : Window
         ApplyTheme(_currentTheme);
     }
 
-    private void MainWindow_LocationChanged(object? sender, EventArgs e)
+    private void NetworkChange_NetworkAddressChanged(object? sender, EventArgs e)
     {
-        if (!_isUserDraggingWindow || !IsLoaded)
-        {
-            return;
-        }
+        // Offload to UI thread to avoid threading issues if we access UI or shared state
+        Dispatcher.Invoke(UpdatePrimaryInterface);
+    }
 
+    private void SystemEvents_DisplaySettingsChanged(object? sender, EventArgs e)
+    {
+         Dispatcher.Invoke(EnsureWindowOnScreen);
+    }
+    
+    private void EnsureWindowOnScreen()
+    {
+        var workingArea = SystemParameters.WorkArea;
+        
+        // Basic clamp to ensure we are at least partially visible
+        if (Left > workingArea.Right - 50) Left = workingArea.Right - Width - 10;
+        if (Top > workingArea.Bottom - 50) Top = workingArea.Bottom - Height - 10;
+        if (Left < workingArea.Left) Left = workingArea.Left + 10;
+        if (Top < workingArea.Top) Top = workingArea.Top + 10;
+        
         PersistWindowPosition();
     }
 
@@ -440,13 +464,15 @@ public partial class MainWindow : Window
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        ForceTopMost();
-        FindActiveInterface();
+        InitializeNetworkBaseline(); // Will also pick primary interface
         UpdateSpeedDisplay(0, 0);
         
         spCpu.Visibility = _settings.ShowCpu ? Visibility.Visible : Visibility.Collapsed;
         spRam.Visibility = _settings.ShowRam ? Visibility.Visible : Visibility.Collapsed;
         UpdateWindowWidth();
+        
+        // Ensure we are on screen (fixes Sleep/Resolution change issues if they happened while closed)
+        EnsureWindowOnScreen();
 
         // Configure and start the high-priority stats timer
         _statsTimer.Interval = TimeSpan.FromMilliseconds(UpdateInterval);
@@ -464,56 +490,46 @@ public partial class MainWindow : Window
         }
     }
 
-    private void FindActiveInterface()
+    private void InitializeNetworkBaseline()
     {
-        try
+        UpdatePrimaryInterface();
+        var (rx, tx) = GetNetworkBytes();
+        _prevBytesReceived = rx;
+        _prevBytesSent = tx;
+    }
+    
+    private void UpdatePrimaryInterface()
+    {
+        try 
         {
-            var bestInterface = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(ni => ni.OperationalStatus == OperationalStatus.Up &&
-                             ni.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
-                             ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel &&
-                             ni.Supports(NetworkInterfaceComponent.IPv4))
-                .OrderByDescending(ni => ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet || ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
-                .ThenByDescending(ni => ni.GetIPProperties().GetIPv4Properties().Index)
-                .FirstOrDefault();
-
-            if (bestInterface != null)
-            {
-                var stats = bestInterface.GetIPv4Statistics();
-                _prevBytesReceived = stats.BytesReceived;
-                _prevBytesSent = stats.BytesSent;
-                _activeInterface = bestInterface;
-            }
-            else
-            {
-                _activeInterface = null;
-            }
+            // Find the active internet interface (has Gateway + Up)
+            _primaryInterface = NetworkInterface.GetAllNetworkInterfaces()
+                .FirstOrDefault(ni => 
+                    ni.OperationalStatus == OperationalStatus.Up && 
+                    ni.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                    ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel &&
+                    ni.GetIPProperties().GatewayAddresses.Count > 0);
         }
-        catch
+        catch 
         {
-            _activeInterface = null;
+            _primaryInterface = null; // Fallback to "all" if this fails (though unlikely)
         }
     }
 
     private void StatsTimer_Tick(object? sender, EventArgs e)
     {
-        if (_activeInterface == null || _activeInterface.OperationalStatus != OperationalStatus.Up)
+        try
         {
-            FindActiveInterface();
-            if (_activeInterface == null)
+            var (totalBytesReceived, totalBytesSent) = GetNetworkBytes();
+
+            if (totalBytesReceived == 0 && totalBytesSent == 0)
             {
                 txtDownload.Text = "No Network";
                 txtUpload.Text = string.Empty;
-                UpdateCpuRamDisplay();
+                UpdateCpuRamDisplay(false);
                 return;
             }
-        }
 
-        try
-        {
-            var stats = _activeInterface.GetIPv4Statistics();
-            var currentBytesReceived = stats.BytesReceived;
-            var currentBytesSent = stats.BytesSent;
             var now = DateTime.Now;
 
             // Calculate exact time passed since last tick (e.g., 1.05 seconds)
@@ -523,8 +539,8 @@ public partial class MainWindow : Window
             if (timeElapsed > 0)
             {
                 // Calculate raw difference
-                long bytesReceivedDiff = currentBytesReceived - _prevBytesReceived;
-                long bytesSentDiff = currentBytesSent - _prevBytesSent;
+                long bytesReceivedDiff = totalBytesReceived - _prevBytesReceived;
+                long bytesSentDiff = totalBytesSent - _prevBytesSent;
 
                 // Adjust purely for the time elapsed. 
                 // If 100Mb came in 1.2 seconds, this results in 83Mb/s (Correct) 
@@ -537,17 +553,73 @@ public partial class MainWindow : Window
             if (_currentDownloadSpeed < 0) _currentDownloadSpeed = 0;
             if (_currentUploadSpeed < 0) _currentUploadSpeed = 0;
 
-            _prevBytesReceived = currentBytesReceived;
-            _prevBytesSent = currentBytesSent;
+            _prevBytesReceived = totalBytesReceived;
+            _prevBytesSent = totalBytesSent;
             _lastTickTime = now; // Reset time for next tick
 
             UpdateSpeedDisplay(_currentDownloadSpeed, _currentUploadSpeed);
-            UpdateCpuRamDisplay();
+            
+            // Optimization: Always update global CPU%, but only scan processes every N seconds
+            _processUpdateTickCounter++;
+            bool updateProcesses = _processUpdateTickCounter >= ProcessUpdateIntervalTicks;
+            if (updateProcesses) _processUpdateTickCounter = 0;
+            
+            UpdateCpuRamDisplay(updateProcesses);
         }
         catch
         {
-            _activeInterface = null; 
+            txtDownload.Text = "No Network";
+            txtUpload.Text = string.Empty;
+            UpdateCpuRamDisplay(false);
         }
+    }
+
+    private (long totalReceived, long totalSent) GetNetworkBytes()
+    {
+        if (_primaryInterface != null)
+        {
+            try
+            {
+                var stats = _primaryInterface.GetIPStatistics();
+                return (stats.BytesReceived, stats.BytesSent);
+            }
+            catch
+            {
+                // Interface might have gone down; trigger refresh logic next time or now?
+                // For now, return 0 or fall through. A refresh will happen via event usually.
+            }
+        }
+
+        // Fallback: Aggregate all if no primary detected or primary failed
+        return GetAggregatedNetworkBytes();
+    }
+
+    private static (long totalReceived, long totalSent) GetAggregatedNetworkBytes()
+    {
+        long totalReceived = 0;
+        long totalSent = 0;
+
+        try
+        {
+            var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(ni => ni.OperationalStatus == OperationalStatus.Up &&
+                             ni.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                             ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel);
+
+            foreach (var networkInterface in interfaces)
+            {
+                try
+                {
+                    var stats = networkInterface.GetIPStatistics();
+                    totalReceived += stats.BytesReceived;
+                    totalSent += stats.BytesSent;
+                }
+                catch { /* Ignore */ }
+            }
+        }
+        catch { /* Ignore */ }
+
+        return (totalReceived, totalSent);
     }
 
     private void UpdateSpeedDisplay(long downloadBytes, long uploadBytes)
@@ -572,7 +644,7 @@ public partial class MainWindow : Window
         pbUpload.Value = _maxSpeed > 0 ? Math.Min(uploadMbit / _maxSpeed * 100, 100) : 0;
     }
 
-    private void UpdateCpuRamDisplay()
+    private void UpdateCpuRamDisplay(bool updateTopProcesses)
     {
         if (_cpuCounter != null)
         {
@@ -580,7 +652,7 @@ public partial class MainWindow : Window
             {
                 var cpuUsage = _cpuCounter.NextValue();
                 txtCpu.Text = $"{cpuUsage:F1}%";
-                txtTopCpu.Text = GetTopCpuProcess() ?? "-";
+                if (updateTopProcesses) txtTopCpu.Text = GetTopCpuProcess() ?? "-";
             }
             catch { /* ignored */ }
         }
@@ -592,7 +664,7 @@ public partial class MainWindow : Window
             if (GlobalMemoryStatusEx(ref memStatus))
             {
                 txtRam.Text = $"{memStatus.dwMemoryLoad}%";
-                txtTopRam.Text = GetTopRamProcess() ?? "-";
+                if (updateTopProcesses) txtTopRam.Text = GetTopRamProcess() ?? "-";
             }
         }
         catch { /* ignored */ }
@@ -666,14 +738,12 @@ public partial class MainWindow : Window
     {
         if (e.ButtonState == MouseButtonState.Pressed)
         {
-            _isUserDraggingWindow = true;
             try
             {
                 DragMove();
             }
             finally
             {
-                _isUserDraggingWindow = false;
                 PersistWindowPosition();
             }
         }
@@ -686,6 +756,8 @@ public partial class MainWindow : Window
         _cpuCounter?.Dispose();
         _statsTimer.Stop();
         _topmostTimer.Stop();
+        NetworkChange.NetworkAddressChanged -= NetworkChange_NetworkAddressChanged;
+        SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
         base.OnClosing(e);
     }
 
