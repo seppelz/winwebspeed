@@ -89,8 +89,11 @@ public partial class MainWindow : Window
         else
         {
             var workingArea = SystemParameters.WorkArea;
-            Left = workingArea.Right - Width - 10;
-            Top = workingArea.Bottom - Height - 10;
+            // Place strictly in the bottom-right corner, aligned with the tray area.
+            // Adjust offsets if needed based on typical taskbar heights, but WorkArea usually excludes taskbar.
+            // If the user wants it "in" the taskbar, we might need to go lower, but let's start with 0 offset from bottom.
+            Left = workingArea.Right - Width - 5;
+            Top = SystemParameters.FullPrimaryScreenHeight - Height; 
         }
 
         ApplyTheme(_currentTheme);
@@ -113,7 +116,7 @@ public partial class MainWindow : Window
         
         // Basic clamp to ensure we are at least partially visible
         if (Left > workingArea.Right - 50) Left = workingArea.Right - Width - 10;
-        if (Top > workingArea.Bottom - 50) Top = workingArea.Bottom - Height - 10;
+        if (Top > SystemParameters.FullPrimaryScreenHeight - 10) Top = SystemParameters.FullPrimaryScreenHeight - Height;
         if (Left < workingArea.Left) Left = workingArea.Left + 10;
         if (Top < workingArea.Top) Top = workingArea.Top + 10;
         
@@ -137,6 +140,29 @@ public partial class MainWindow : Window
     private const uint SwpNosize = 0x0001;
     private const uint SwpNomove = 0x0002;
     private const uint SwpNoactivate = 0x0010;
+    
+    private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_TOOLWINDOW = 0x00000080;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+    
+    private void HideFromAltTab()
+    {
+        try
+        {
+            var hWnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            if (hWnd != IntPtr.Zero)
+            {
+                int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+                SetWindowLong(hWnd, GWL_EXSTYLE, exStyle | WS_EX_TOOLWINDOW);
+            }
+        }
+        catch { /* Ignored */ }
+    }
 
     private void ForceTopMost()
     {
@@ -473,6 +499,8 @@ public partial class MainWindow : Window
         
         // Ensure we are on screen (fixes Sleep/Resolution change issues if they happened while closed)
         EnsureWindowOnScreen();
+        
+        HideFromAltTab();
 
         // Configure and start the high-priority stats timer
         _statsTimer.Interval = TimeSpan.FromMilliseconds(UpdateInterval);
@@ -652,7 +680,6 @@ public partial class MainWindow : Window
             {
                 var cpuUsage = _cpuCounter.NextValue();
                 txtCpu.Text = $"{cpuUsage:F1}%";
-                if (updateTopProcesses) txtTopCpu.Text = GetTopCpuProcess() ?? "-";
             }
             catch { /* ignored */ }
         }
@@ -664,61 +691,79 @@ public partial class MainWindow : Window
             if (GlobalMemoryStatusEx(ref memStatus))
             {
                 txtRam.Text = $"{memStatus.dwMemoryLoad}%";
-                if (updateTopProcesses) txtTopRam.Text = GetTopRamProcess() ?? "-";
             }
         }
         catch { /* ignored */ }
+
+        if (updateTopProcesses)
+        {
+            var (topCpu, topRam) = GetTopProcesses();
+            txtTopCpu.Text = topCpu ?? "-";
+            txtTopRam.Text = topRam ?? "-";
+        }
     }
 
-    private string? GetTopCpuProcess()
+    private (string? topCpu, string? topRam) GetTopProcesses()
     {
         try
         {
             var elapsed = (DateTime.Now - _prevTime).TotalMilliseconds;
-            if (elapsed < 500) return null; 
+            _prevTime = DateTime.Now; // Update time for next check
 
-            string? topProcessName = null;
+            if (elapsed < 500) return (null, null);
+
+            string? topCpuName = null;
             double maxCpu = -1;
+            
+            string? topRamName = null;
+            long maxRam = -1;
 
             var processes = System.Diagnostics.Process.GetProcesses();
+            var currentPids = new HashSet<int>();
+
             foreach (var process in processes)
             {
-                try
+                using (process) // CRITICAL: Dispose process handles to free memory
                 {
-                    var pid = process.Id;
-                    var currentProcessorTime = process.TotalProcessorTime;
-
-                    if (_prevProcessorTimes.TryGetValue(pid, out var prevProcessorTime))
+                    try
                     {
-                        var cpuUsedMs = (currentProcessorTime - prevProcessorTime).TotalMilliseconds;
-                        var cpuPercent = cpuUsedMs / (elapsed * Environment.ProcessorCount) * 100;
-                        if (cpuPercent > maxCpu)
+                        var pid = process.Id;
+                        currentPids.Add(pid);
+                        
+                        // RAM Check (Working Set)
+                        long workingSet = process.WorkingSet64;
+                        if (workingSet > maxRam)
                         {
-                            maxCpu = cpuPercent;
-                            topProcessName = process.ProcessName;
+                            maxRam = workingSet;
+                            topRamName = process.ProcessName;
                         }
-                    }
-                    _prevProcessorTimes[pid] = currentProcessorTime;
-                }
-                catch { /* Process may have exited */ }
-            }
-            _prevTime = DateTime.Now;
-            return topProcessName;
-        }
-        catch { return null; }
-    }
 
-    private string? GetTopRamProcess()
-    {
-        try
-        {
-            return System.Diagnostics.Process.GetProcesses()
-                .Where(p => { try { return !p.HasExited && p.WorkingSet64 > 0; } catch { return false; } })
-                .OrderByDescending(p => { try { return p.WorkingSet64; } catch { return 0L; } })
-                .Select(p => p.ProcessName)
-                .FirstOrDefault();
+                        // CPU Check
+                        var currentProcessorTime = process.TotalProcessorTime;
+                        if (_prevProcessorTimes.TryGetValue(pid, out var prevProcessorTime))
+                        {
+                            var cpuUsedMs = (currentProcessorTime - prevProcessorTime).TotalMilliseconds;
+                            var cpuPercent = cpuUsedMs / (elapsed * Environment.ProcessorCount) * 100;
+                            if (cpuPercent > maxCpu)
+                            {
+                                maxCpu = cpuPercent;
+                                topCpuName = process.ProcessName;
+                            }
+                        }
+                        _prevProcessorTimes[pid] = currentProcessorTime;
+                    }
+                    catch { /* Access denied or process exited */ }
+                }
+            }
+
+            // Memory Optimization: Clean up history for closed processes
+            // We can't modify the dictionary while iterating, so find keys first
+            var deadPids = _prevProcessorTimes.Keys.Where(k => !currentPids.Contains(k)).ToList();
+            foreach (var pid in deadPids) _prevProcessorTimes.Remove(pid);
+
+            return (topCpuName, topRamName);
         }
-        catch { return null; }
+        catch { return (null, null); }
     }
 
     private void ApplyTheme(Theme theme)
