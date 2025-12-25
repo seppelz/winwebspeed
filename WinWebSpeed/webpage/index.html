@@ -7,7 +7,7 @@
     <meta name="description"
         content="WinWebSpeed - Ultra-lightweight native Windows network and system monitor. Only 1.8MB. Always visible, fully transparent overlay.">
     <meta name="keywords"
-        content="network monitor, system monitor, windows, lightweight, native, transparent overlay, cpu monitor, ram monitor">
+        content="network monitor, system monitor, windows, lightweight, native, transparent overlay, cpu monitor, gpu monitor, ram monitor">
     <title>WinWebSpeed - Ultra-Lightweight Network & System Monitor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,7 +45,7 @@
             </h1>
 
             <p class="hero-description">
-                Ultra-lightweight transparent overlay for Windows. Monitor network speeds, CPU, and RAM
+                Ultra-lightweight transparent overlay for Windows. Monitor network speeds, CPU, GPU, and RAM
                 in real-time without cluttering your screen. Native C# application, not another resource hog.
             </p>
 
@@ -121,6 +121,16 @@
                                 <span class="overlay-unit">%</span>
                             </div>
                             <div class="overlay-process" id="demo-cpu-process">chrome</div>
+                        </div>
+
+                        <!-- GPU -->
+                        <div class="overlay-item">
+                            <div class="overlay-item-header">
+                                <span class="overlay-label">GPU</span>
+                                <span class="overlay-value" id="demo-gpu">0</span>
+                                <span class="overlay-unit">%</span>
+                            </div>
+                            <div class="overlay-process" id="demo-gpu-process">-</div>
                         </div>
 
                         <!-- RAM -->
@@ -222,7 +232,7 @@
                         </svg>
                     </div>
                     <div class="feature-content">
-                        <h4 class="feature-title">CPU & RAM Usage</h4>
+                        <h4 class="feature-title">CPU, GPU & RAM Usage</h4>
                         <p class="feature-desc">Percentage + top consuming process</p>
                     </div>
                 </div>
@@ -348,7 +358,7 @@
                                 stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            CPU & RAM usage tracking
+                            CPU, GPU & RAM usage tracking
                         </li>
                         <li>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"

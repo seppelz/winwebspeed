@@ -19,6 +19,8 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="10"/> <!-- Spacer -->
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="10"/> <!-- Spacer -->
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- Download Section -->
@@ -54,8 +56,17 @@
             <TextBlock Name="txtTopCpu" Text="-" Foreground="#AAAAAA" FontSize="9" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
 
+        <!-- GPU Section -->
+        <StackPanel Name="spGpu" Grid.Column="6" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,2">
+                <TextBlock Text="GPU" Foreground="#CCCCCC" FontWeight="Bold" FontSize="11" Margin="0,0,3,0"/>
+                <TextBlock Name="txtGpu" Text="0%" Foreground="White" FontWeight="Bold" FontSize="11"/>
+            </StackPanel>
+            <TextBlock Name="txtTopGpu" Text="-" Foreground="#AAAAAA" FontSize="9" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+
         <!-- RAM Section -->
-        <StackPanel Name="spRam" Grid.Column="6" VerticalAlignment="Center">
+        <StackPanel Name="spRam" Grid.Column="8" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,2">
                 <TextBlock Text="RAM" Foreground="#CCCCCC" FontWeight="Bold" FontSize="11" Margin="0,0,3,0"/>
                 <TextBlock Name="txtRam" Text="0%" Foreground="White" FontWeight="Bold" FontSize="11"/>

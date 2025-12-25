@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Management;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -40,6 +42,10 @@ public partial class MainWindow : Window
     // private bool _isUserDraggingWindow; // Removed unused field
 
     private System.Diagnostics.PerformanceCounter? _cpuCounter;
+    private readonly List<System.Diagnostics.PerformanceCounter> _gpuCounters = new();
+    private readonly Dictionary<System.Diagnostics.PerformanceCounter, int> _gpuCounterToPid = new();
+    private readonly Dictionary<int, double> _gpuUsageByPid = new();
+    private bool _useWmiForGpu = false;
     private readonly Dictionary<int, TimeSpan> _prevProcessorTimes = new();
     private DateTime _prevTime = DateTime.Now;
     
@@ -131,6 +137,178 @@ public partial class MainWindow : Window
             _cpuCounter.NextValue(); // First call returns 0
         }
         catch { /* Handle permission issues */ }
+
+        // Initialize GPU counters - aggregate all GPU engines for accurate usage
+        try
+        {
+            // Try multiple GPU counter categories
+            string[] categoriesToTry = { "GPU Engine", "GPU Adapter Memory", "GPU Process Engine" };
+            
+            foreach (var categoryName in categoriesToTry)
+            {
+                try
+                {
+                    var category = new System.Diagnostics.PerformanceCounterCategory(categoryName);
+                    var instanceNames = category.GetInstanceNames();
+                    
+                    if (instanceNames.Length > 0)
+                    {
+                        // Get counters for the first instance to see what's available
+                        var firstInstance = instanceNames[0];
+                        var availableCounters = category.GetCounters(firstInstance);
+                        
+                        // Look for utilization counter
+                        string? workingCounterName = null;
+                        foreach (var counter in availableCounters)
+                        {
+                            var counterName = counter.CounterName;
+                            if (counterName.Contains("Utilization", StringComparison.OrdinalIgnoreCase) ||
+                                counterName.Contains("Usage", StringComparison.OrdinalIgnoreCase) ||
+                                counterName == "Utilization Percentage")
+                            {
+                                workingCounterName = counterName;
+                                break;
+                            }
+                        }
+                        
+                        // If no utilization counter found, try common names
+                        if (workingCounterName == null)
+                        {
+                            string[] commonNames = { "Utilization Percentage", "% Utilization", "Utilization", "Dedicated Usage", "Shared Usage" };
+                            foreach (var name in commonNames)
+                            {
+                                if (availableCounters.Any(c => c.CounterName.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    workingCounterName = name;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (workingCounterName != null)
+                        {
+                            // For GPU Engine category, filter by engine type
+                            if (categoryName == "GPU Engine")
+                            {
+                                var relevantInstances = instanceNames
+                                    .Where(name => 
+                                        name.Contains("engtype_3D") || 
+                                        name.Contains("engtype_Compute") || 
+                                        name.Contains("engtype_VideoDecode") || 
+                                        name.Contains("engtype_VideoEncode") ||
+                                        name.Contains("engtype_Copy"))
+                                    .ToList();
+                                
+                                if (relevantInstances.Count == 0)
+                                {
+                                    relevantInstances = instanceNames.ToList();
+                                }
+                                
+                                foreach (var instanceName in relevantInstances)
+                                {
+                                    try
+                                    {
+                                        var counter = new System.Diagnostics.PerformanceCounter(categoryName, workingCounterName, instanceName);
+                                        counter.NextValue(); // First call returns 0
+                                        _gpuCounters.Add(counter);
+                                        
+                                        // Extract process ID from instance name (format: "pid_<pid>_luid_...")
+                                        var pid = ExtractPidFromInstanceName(instanceName);
+                                        if (pid.HasValue)
+                                        {
+                                            _gpuCounterToPid[counter] = pid.Value;
+                                        }
+                                    }
+                                    catch { /* Skip */ }
+                                }
+                            }
+                            else
+                            {
+                                // For other categories, use all instances
+                                foreach (var instanceName in instanceNames)
+                                {
+                                    try
+                                    {
+                                        var counter = new System.Diagnostics.PerformanceCounter(categoryName, workingCounterName, instanceName);
+                                        counter.NextValue(); // First call returns 0
+                                        _gpuCounters.Add(counter);
+                                        
+                                        // Extract process ID from instance name (format: "pid_<pid>_luid_...")
+                                        var pid = ExtractPidFromInstanceName(instanceName);
+                                        if (pid.HasValue)
+                                        {
+                                            _gpuCounterToPid[counter] = pid.Value;
+                                        }
+                                    }
+                                    catch { /* Skip */ }
+                                }
+                            }
+                            
+                            // If we found counters, break out of category loop
+                            if (_gpuCounters.Count > 0)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Try next category
+                    continue;
+                }
+            }
+            
+            // If performance counters didn't work, try WMI as fallback
+            if (_gpuCounters.Count == 0)
+            {
+                _useWmiForGpu = TryInitializeGpuWmi();
+            }
+        }
+        catch 
+        { 
+            // GPU counter not available, try WMI fallback
+            _gpuCounters.Clear();
+            _useWmiForGpu = TryInitializeGpuWmi();
+        }
+    }
+    
+    private int? ExtractPidFromInstanceName(string instanceName)
+    {
+        // GPU Engine instance names have format: "pid_<pid>_luid_<luid>_phys_<phys>_eng_<eng>_engtype_<type>"
+        // Extract PID from the instance name
+        try
+        {
+            var parts = instanceName.Split('_');
+            for (int i = 0; i < parts.Length - 1; i++)
+            {
+                if (parts[i] == "pid" && i + 1 < parts.Length)
+                {
+                    if (int.TryParse(parts[i + 1], out var pid))
+                    {
+                        return pid;
+                    }
+                }
+            }
+        }
+        catch { /* Ignore parsing errors */ }
+        return null;
+    }
+
+    private bool TryInitializeGpuWmi()
+    {
+        try
+        {
+            // Try WMI query for GPU usage (Win32_VideoController or GPU performance data)
+            using var searcher = new System.Management.ManagementObjectSearcher(
+                "SELECT Name, AdapterRAM FROM Win32_VideoController WHERE Availability=3");
+            var results = searcher.Get();
+            return results.Count > 0; // If we found GPUs, WMI is available
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -255,6 +433,7 @@ public partial class MainWindow : Window
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
         contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Show CPU", null, (s, e) => ToggleCpu()) { Checked = _settings.ShowCpu, Name = "cpuItem" });
         contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Show RAM", null, (s, e) => ToggleRam()) { Checked = _settings.ShowRam, Name = "ramItem" });
+        contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Show GPU", null, (s, e) => ToggleGpu()) { Checked = _settings.ShowGpu, Name = "gpuItem" });
         contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Run at Startup", null, (s, e) => ToggleStartup()) { Checked = _settings.RunAtStartup, Name = "startupItem" });
         contextMenu.Items.Add(new WinForms.ToolStripSeparator());
         contextMenu.Items.Add(new WinForms.ToolStripMenuItem("Check for Updates", null, (s, e) => CheckForUpdates(true)) { Name = "updateItem" });
@@ -393,7 +572,7 @@ public partial class MainWindow : Window
         _settings.ShowCpu = !_settings.ShowCpu;
         _settings.Save();
         spCpu.Visibility = _settings.ShowCpu ? Visibility.Visible : Visibility.Collapsed;
-        UpdateWindowWidth();
+        UpdateGridLayout();
         if (_notifyIcon?.ContextMenuStrip?.Items["cpuItem"] is WinForms.ToolStripMenuItem cpuItem) { cpuItem.Checked = _settings.ShowCpu; }
     }
 
@@ -402,13 +581,52 @@ public partial class MainWindow : Window
         _settings.ShowRam = !_settings.ShowRam;
         _settings.Save();
         spRam.Visibility = _settings.ShowRam ? Visibility.Visible : Visibility.Collapsed;
-        UpdateWindowWidth();
+        UpdateGridLayout();
         if (_notifyIcon?.ContextMenuStrip?.Items["ramItem"] is WinForms.ToolStripMenuItem ramItem) { ramItem.Checked = _settings.ShowRam; }
+    }
+
+    private void ToggleGpu()
+    {
+        _settings.ShowGpu = !_settings.ShowGpu;
+        _settings.Save();
+        spGpu.Visibility = _settings.ShowGpu ? Visibility.Visible : Visibility.Collapsed;
+        UpdateGridLayout();
+        if (_notifyIcon?.ContextMenuStrip?.Items["gpuItem"] is WinForms.ToolStripMenuItem gpuItem) { gpuItem.Checked = _settings.ShowGpu; }
+    }
+
+    private void UpdateGridLayout()
+    {
+        // Download is always at column 0, Upload is always at column 2
+        // System stats (CPU, GPU, RAM) are dynamically positioned starting at column 4
+        
+        int currentColumn = 4; // Start after Upload (which is at column 2)
+        
+        // CPU comes first
+        if (_settings.ShowCpu)
+        {
+            Grid.SetColumn(spCpu, currentColumn);
+            currentColumn += 2; // Column + spacer
+        }
+        
+        // GPU comes after CPU
+        if (_settings.ShowGpu)
+        {
+            Grid.SetColumn(spGpu, currentColumn);
+            currentColumn += 2; // Column + spacer
+        }
+        
+        // RAM comes last
+        if (_settings.ShowRam)
+        {
+            Grid.SetColumn(spRam, currentColumn);
+        }
+        
+        UpdateWindowWidth();
     }
 
     private void UpdateWindowWidth()
     {
-        Width = 260 + (_settings.ShowCpu ? 130 : 0) + (_settings.ShowRam ? 130 : 0);
+        Width = 260 + (_settings.ShowCpu ? 130 : 0) + (_settings.ShowRam ? 130 : 0) + (_settings.ShowGpu ? 130 : 0);
     }
 
     private void SetUnit(SpeedUnit unit)
@@ -495,7 +713,8 @@ public partial class MainWindow : Window
         
         spCpu.Visibility = _settings.ShowCpu ? Visibility.Visible : Visibility.Collapsed;
         spRam.Visibility = _settings.ShowRam ? Visibility.Visible : Visibility.Collapsed;
-        UpdateWindowWidth();
+        spGpu.Visibility = _settings.ShowGpu ? Visibility.Visible : Visibility.Collapsed;
+        UpdateGridLayout();
         
         // Ensure we are on screen (fixes Sleep/Resolution change issues if they happened while closed)
         EnsureWindowOnScreen();
@@ -695,12 +914,145 @@ public partial class MainWindow : Window
         }
         catch { /* ignored */ }
 
+        if (_gpuCounters.Count > 0)
+        {
+            try
+            {
+                // Get GPU usage from all engine instances and track per-process
+                // Use maximum utilization across all engines (engines can run in parallel)
+                double maxGpuUsage = 0;
+                double sumGpuUsage = 0;
+                int validReadings = 0;
+                
+                // Clear previous GPU usage tracking
+                _gpuUsageByPid.Clear();
+                
+                foreach (var counter in _gpuCounters)
+                {
+                    try
+                    {
+                        // Read the counter - performance counters often return 0 on first read
+                        // The actual value comes on subsequent reads
+                        var usage = counter.NextValue();
+                        
+                        // Validate the reading
+                        if (usage >= 0 && usage <= 100)
+                        {
+                            maxGpuUsage = Math.Max(maxGpuUsage, usage);
+                            sumGpuUsage += usage;
+                            validReadings++;
+                            
+                            // Track usage per process if we have PID mapping
+                            if (_gpuCounterToPid.TryGetValue(counter, out var pid))
+                            {
+                                if (!_gpuUsageByPid.ContainsKey(pid))
+                                {
+                                    _gpuUsageByPid[pid] = 0;
+                                }
+                                _gpuUsageByPid[pid] = Math.Max(_gpuUsageByPid[pid], usage);
+                            }
+                        }
+                        // If usage is 0, it might be valid (GPU idle) or first read
+                        // We'll accept it but track separately
+                        else if (usage == 0)
+                        {
+                            validReadings++; // Count as valid but idle
+                        }
+                    }
+                    catch { /* Skip failed counter */ }
+                }
+                
+                if (validReadings > 0)
+                {
+                    // Use maximum as it represents peak GPU load
+                    // But if we have many engines, also consider average
+                    double finalUsage = maxGpuUsage;
+                    
+                    // If we have multiple readings and max is very low but sum is high,
+                    // it might indicate the counter format is different
+                    if (validReadings > 1 && maxGpuUsage < 5 && sumGpuUsage > 10)
+                    {
+                        // Try average as fallback
+                        finalUsage = Math.Min(sumGpuUsage / validReadings, 100);
+                    }
+                    
+                    txtGpu.Text = $"{finalUsage:F1}%";
+                }
+                else
+                {
+                    txtGpu.Text = "0%";
+                }
+            }
+            catch { /* ignored */ }
+        }
+        else if (_useWmiForGpu)
+        {
+            // Fallback to WMI method
+            try
+            {
+                var gpuUsage = GetGpuUsageWmi();
+                if (gpuUsage.HasValue)
+                {
+                    txtGpu.Text = $"{gpuUsage.Value:F1}%";
+                }
+                else
+                {
+                    txtGpu.Text = "0%";
+                }
+            }
+            catch
+            {
+                txtGpu.Text = "0%";
+            }
+        }
+        else
+        {
+            txtGpu.Text = "0%";
+        }
+
         if (updateTopProcesses)
         {
             var (topCpu, topRam) = GetTopProcesses();
             txtTopCpu.Text = topCpu ?? "-";
             txtTopRam.Text = topRam ?? "-";
+            
+            // Get top GPU process
+            var topGpu = GetTopGpuProcess();
+            txtTopGpu.Text = topGpu ?? "-";
         }
+    }
+    
+    private string? GetTopGpuProcess()
+    {
+        if (_gpuUsageByPid.Count == 0) return null;
+        
+        try
+        {
+            // Find the process ID with highest GPU usage
+            var topPid = _gpuUsageByPid.OrderByDescending(kvp => kvp.Value).First().Key;
+            
+            // Get the process name
+            try
+            {
+                var process = System.Diagnostics.Process.GetProcessById(topPid);
+                return process.ProcessName;
+            }
+            catch
+            {
+                // Process might have exited, return null
+                return null;
+            }
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private double? GetGpuUsageWmi()
+    {
+        // WMI fallback for GPU usage - not currently implemented
+        return null;
     }
 
     private (string? topCpu, string? topRam) GetTopProcesses()
@@ -775,6 +1127,7 @@ public partial class MainWindow : Window
         txtUpload.Foreground = textColor;
         txtCpu.Foreground = textColor;
         txtRam.Foreground = textColor;
+        txtGpu.Foreground = textColor;
         pbDownload.Foreground = barColor;
         pbUpload.Foreground = barColor;
     }
@@ -799,6 +1152,11 @@ public partial class MainWindow : Window
         _settings.Save();
         _notifyIcon?.Dispose();
         _cpuCounter?.Dispose();
+        foreach (var counter in _gpuCounters)
+        {
+            counter?.Dispose();
+        }
+        _gpuCounters.Clear();
         _statsTimer.Stop();
         _topmostTimer.Stop();
         NetworkChange.NetworkAddressChanged -= NetworkChange_NetworkAddressChanged;
@@ -813,3 +1171,4 @@ public partial class MainWindow : Window
         _settings.Save();
     }
 }
+

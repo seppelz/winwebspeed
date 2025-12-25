@@ -38,6 +38,7 @@ public class Settings
     public SpeedUnit SpeedUnit { get; set; } = SpeedUnit.Bytes;
     public bool ShowCpu { get; set; } = true;
     public bool ShowRam { get; set; } = true;
+    public bool ShowGpu { get; set; } = true;
     public bool RunAtStartup { get; set; } = false;
     public int MaxSpeed { get; set; } = 100;
     public string ThemeName { get; set; } = "Orange";
@@ -61,6 +62,7 @@ public class Settings
                 key.SetValue("SpeedUnit", SpeedUnit.ToString());
                 key.SetValue("ShowCpu", ShowCpu ? 1 : 0);
                 key.SetValue("ShowRam", ShowRam ? 1 : 0);
+                key.SetValue("ShowGpu", ShowGpu ? 1 : 0);
                 key.SetValue("RunAtStartup", RunAtStartup ? 1 : 0);
                 key.SetValue("MaxSpeed", MaxSpeed);
                 key.SetValue("ThemeName", ThemeName);
@@ -88,6 +90,7 @@ public class Settings
                 settings.SpeedUnit = Enum.TryParse<SpeedUnit>(unitStr, out var unit) ? unit : SpeedUnit.Bytes;
                 settings.ShowCpu = Convert.ToInt32(key.GetValue("ShowCpu", 1)) == 1;
                 settings.ShowRam = Convert.ToInt32(key.GetValue("ShowRam", 1)) == 1;
+                settings.ShowGpu = Convert.ToInt32(key.GetValue("ShowGpu", 1)) == 1;
                 settings.RunAtStartup = Convert.ToInt32(key.GetValue("RunAtStartup", 0)) == 1;
                 settings.MaxSpeed = Convert.ToInt32(key.GetValue("MaxSpeed", 100));
                 settings.ThemeName = key.GetValue("ThemeName", "Orange")?.ToString() ?? "Orange";

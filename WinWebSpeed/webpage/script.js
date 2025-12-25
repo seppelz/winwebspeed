@@ -6,10 +6,12 @@ class NetworkSimulator {
     this.dlSpeed = 0;
     this.ulSpeed = 0;
     this.cpuUsage = 38.7;
+    this.gpuUsage = 25.3;
     this.ramUsage = 51.8;
     this.targetDl = 0;
     this.targetUl = 0;
     this.targetCpu = 38.7;
+    this.targetGpu = 25.3;
     this.targetRam = 51.8;
 
     this.processes = ['chrome', 'firefox', 'code', 'spotify', 'discord', 'teams'];
@@ -44,6 +46,7 @@ class NetworkSimulator {
     this.dlSpeed = this.lerp(this.dlSpeed, this.targetDl, smoothing);
     this.ulSpeed = this.lerp(this.ulSpeed, this.targetUl, smoothing);
     this.cpuUsage = this.lerp(this.cpuUsage, this.targetCpu, smoothing * 0.3);
+    this.gpuUsage = this.lerp(this.gpuUsage, this.targetGpu, smoothing * 0.25);
     this.ramUsage = this.lerp(this.ramUsage, this.targetRam, smoothing * 0.2);
   }
 
@@ -53,6 +56,7 @@ class NetworkSimulator {
     this.targetDl = pattern.dl.min + Math.random() * (pattern.dl.max - pattern.dl.min);
     this.targetUl = pattern.ul.min + Math.random() * (pattern.ul.max - pattern.ul.min);
     this.targetCpu = 25 + Math.random() * 35; // 25-60%
+    this.targetGpu = 15 + Math.random() * 45; // 15-60%
     this.targetRam = 40 + Math.random() * 30; // 40-70%
 
     // Occasionally change process names
@@ -93,10 +97,12 @@ function animate() {
     const dlElement = document.getElementById('demo-dl');
     const ulElement = document.getElementById('demo-ul');
     const cpuElement = document.getElementById('demo-cpu');
+    const gpuElement = document.getElementById('demo-gpu');
     const ramElement = document.getElementById('demo-ram');
     const dlBar = document.getElementById('demo-dl-bar');
     const ulBar = document.getElementById('demo-ul-bar');
     const cpuProcess = document.getElementById('demo-cpu-process');
+    const gpuProcess = document.getElementById('demo-gpu-process');
     const ramProcess = document.getElementById('demo-ram-process');
 
     if (dlElement && dlBar) {
@@ -114,13 +120,18 @@ function animate() {
       cpuProcess.textContent = simulator.currentCpuProcess;
     }
 
+    if (gpuElement && gpuProcess) {
+      gpuElement.textContent = Math.round(simulator.gpuUsage);
+      gpuProcess.textContent = '-';
+    }
+
     if (ramElement && ramProcess) {
       ramElement.textContent = Math.round(simulator.ramUsage);
       ramProcess.textContent = simulator.currentRamProcess;
     }
 
     // Continue animation only if elements exist
-    if (dlElement || ulElement || cpuElement || ramElement) {
+    if (dlElement || ulElement || cpuElement || gpuElement || ramElement) {
       animationFrameId = requestAnimationFrame(animate);
     }
   } catch (error) {
@@ -140,10 +151,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const dlElement = document.getElementById('demo-dl');
       const ulElement = document.getElementById('demo-ul');
       const cpuElement = document.getElementById('demo-cpu');
+      const gpuElement = document.getElementById('demo-gpu');
       const ramElement = document.getElementById('demo-ram');
       
       // Only start animation if demo elements exist
-      if (dlElement || ulElement || cpuElement || ramElement) {
+      if (dlElement || ulElement || cpuElement || gpuElement || ramElement) {
         animate();
       }
     }, 500);
