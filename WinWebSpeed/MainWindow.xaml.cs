@@ -118,14 +118,18 @@ public partial class MainWindow : Window
     
     private void EnsureWindowOnScreen()
     {
-        var workingArea = SystemParameters.WorkArea;
-        
-        // Basic clamp to ensure we are at least partially visible
-        if (Left > workingArea.Right - 50) Left = workingArea.Right - Width - 10;
-        if (Top > SystemParameters.FullPrimaryScreenHeight - 10) Top = SystemParameters.FullPrimaryScreenHeight - Height;
-        if (Left < workingArea.Left) Left = workingArea.Left + 10;
-        if (Top < workingArea.Top) Top = workingArea.Top + 10;
-        
+        // Allow positioning anywhere on screen, including in taskbar area.
+        // Only prevent the window from going completely off-screen.
+        var screenWidth = SystemParameters.FullPrimaryScreenWidth;
+        var screenHeight = SystemParameters.FullPrimaryScreenHeight;
+
+        // Ensure at least 50px of the window is visible on screen
+        // This allows taskbar positioning while preventing completely off-screen windows
+        if (Left > screenWidth - 50) Left = screenWidth - Width;
+        if (Left < -Width + 50) Left = 0;
+        if (Top > screenHeight - 20) Top = screenHeight - Height;
+        if (Top < -Height + 20) Top = 0;
+
         PersistWindowPosition();
     }
 
@@ -710,15 +714,15 @@ public partial class MainWindow : Window
     {
         InitializeNetworkBaseline(); // Will also pick primary interface
         UpdateSpeedDisplay(0, 0);
-        
+
         spCpu.Visibility = _settings.ShowCpu ? Visibility.Visible : Visibility.Collapsed;
         spRam.Visibility = _settings.ShowRam ? Visibility.Visible : Visibility.Collapsed;
         spGpu.Visibility = _settings.ShowGpu ? Visibility.Visible : Visibility.Collapsed;
         UpdateGridLayout();
-        
-        // Ensure we are on screen (fixes Sleep/Resolution change issues if they happened while closed)
-        EnsureWindowOnScreen();
-        
+
+        // Don't call EnsureWindowOnScreen() here - trust the saved position from user.
+        // It will only be called when display settings change via SystemEvents.DisplaySettingsChanged.
+
         HideFromAltTab();
 
         // Configure and start the high-priority stats timer
@@ -1149,6 +1153,9 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
+        // Ensure current position is saved before closing
+        PersistWindowPosition();
+
         _settings.Save();
         _notifyIcon?.Dispose();
         _cpuCounter?.Dispose();
