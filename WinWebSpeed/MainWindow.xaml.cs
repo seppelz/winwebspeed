@@ -51,7 +51,7 @@ public partial class MainWindow : Window
     
     // Optimization: Only scan processes every N seconds
     private int _processUpdateTickCounter = 0;
-    private const int ProcessUpdateIntervalTicks = 3; 
+    private const int ProcessUpdateIntervalTicks = 10; 
 
     // Network Selection
     private NetworkInterface? _primaryInterface;
@@ -897,7 +897,7 @@ public partial class MainWindow : Window
 
     private void UpdateCpuRamDisplay(bool updateTopProcesses)
     {
-        if (_cpuCounter != null)
+        if (_settings.ShowCpu && _cpuCounter != null)
         {
             try
             {
@@ -907,122 +907,135 @@ public partial class MainWindow : Window
             catch { /* ignored */ }
         }
 
-        try
-        {
-            var memStatus = new MemoryStatusEx();
-            memStatus.Init();
-            if (GlobalMemoryStatusEx(ref memStatus))
-            {
-                txtRam.Text = $"{memStatus.dwMemoryLoad}%";
-            }
-        }
-        catch { /* ignored */ }
-
-        if (_gpuCounters.Count > 0)
+        if (_settings.ShowRam)
         {
             try
             {
-                // Get GPU usage from all engine instances and track per-process
-                // Use maximum utilization across all engines (engines can run in parallel)
-                double maxGpuUsage = 0;
-                double sumGpuUsage = 0;
-                int validReadings = 0;
-                
-                // Clear previous GPU usage tracking
-                _gpuUsageByPid.Clear();
-                
-                foreach (var counter in _gpuCounters)
+                var memStatus = new MemoryStatusEx();
+                memStatus.Init();
+                if (GlobalMemoryStatusEx(ref memStatus))
                 {
-                    try
-                    {
-                        // Read the counter - performance counters often return 0 on first read
-                        // The actual value comes on subsequent reads
-                        var usage = counter.NextValue();
-                        
-                        // Validate the reading
-                        if (usage >= 0 && usage <= 100)
-                        {
-                            maxGpuUsage = Math.Max(maxGpuUsage, usage);
-                            sumGpuUsage += usage;
-                            validReadings++;
-                            
-                            // Track usage per process if we have PID mapping
-                            if (_gpuCounterToPid.TryGetValue(counter, out var pid))
-                            {
-                                if (!_gpuUsageByPid.ContainsKey(pid))
-                                {
-                                    _gpuUsageByPid[pid] = 0;
-                                }
-                                _gpuUsageByPid[pid] = Math.Max(_gpuUsageByPid[pid], usage);
-                            }
-                        }
-                        // If usage is 0, it might be valid (GPU idle) or first read
-                        // We'll accept it but track separately
-                        else if (usage == 0)
-                        {
-                            validReadings++; // Count as valid but idle
-                        }
-                    }
-                    catch { /* Skip failed counter */ }
-                }
-                
-                if (validReadings > 0)
-                {
-                    // Use maximum as it represents peak GPU load
-                    // But if we have many engines, also consider average
-                    double finalUsage = maxGpuUsage;
-                    
-                    // If we have multiple readings and max is very low but sum is high,
-                    // it might indicate the counter format is different
-                    if (validReadings > 1 && maxGpuUsage < 5 && sumGpuUsage > 10)
-                    {
-                        // Try average as fallback
-                        finalUsage = Math.Min(sumGpuUsage / validReadings, 100);
-                    }
-                    
-                    txtGpu.Text = $"{finalUsage:F1}%";
-                }
-                else
-                {
-                    txtGpu.Text = "0%";
+                    txtRam.Text = $"{memStatus.dwMemoryLoad}%";
                 }
             }
             catch { /* ignored */ }
         }
-        else if (_useWmiForGpu)
+
+        if (_settings.ShowGpu)
         {
-            // Fallback to WMI method
-            try
+            if (_gpuCounters.Count > 0)
             {
-                var gpuUsage = GetGpuUsageWmi();
-                if (gpuUsage.HasValue)
+                try
                 {
-                    txtGpu.Text = $"{gpuUsage.Value:F1}%";
+                    // Get GPU usage from all engine instances and track per-process
+                    // Use maximum utilization across all engines (engines can run in parallel)
+                    double maxGpuUsage = 0;
+                    double sumGpuUsage = 0;
+                    int validReadings = 0;
+                    
+                    // Clear previous GPU usage tracking
+                    _gpuUsageByPid.Clear();
+                    
+                    foreach (var counter in _gpuCounters)
+                    {
+                        try
+                        {
+                            // Read the counter - performance counters often return 0 on first read
+                            // The actual value comes on subsequent reads
+                            var usage = counter.NextValue();
+                            
+                            // Validate the reading
+                            if (usage >= 0 && usage <= 100)
+                            {
+                                maxGpuUsage = Math.Max(maxGpuUsage, usage);
+                                sumGpuUsage += usage;
+                                validReadings++;
+                                
+                                // Track usage per process if we have PID mapping
+                                if (_gpuCounterToPid.TryGetValue(counter, out var pid))
+                                {
+                                    if (!_gpuUsageByPid.ContainsKey(pid))
+                                    {
+                                        _gpuUsageByPid[pid] = 0;
+                                    }
+                                    _gpuUsageByPid[pid] = Math.Max(_gpuUsageByPid[pid], usage);
+                                }
+                            }
+                            // If usage is 0, it might be valid (GPU idle) or first read
+                            // We'll accept it but track separately
+                            else if (usage == 0)
+                            {
+                                validReadings++; // Count as valid but idle
+                            }
+                        }
+                        catch { /* Skip failed counter */ }
+                    }
+                    
+                    if (validReadings > 0)
+                    {
+                        // Use maximum as it represents peak GPU load
+                        // But if we have many engines, also consider average
+                        double finalUsage = maxGpuUsage;
+                        
+                        // If we have multiple readings and max is very low but sum is high,
+                        // it might indicate the counter format is different
+                        if (validReadings > 1 && maxGpuUsage < 5 && sumGpuUsage > 10)
+                        {
+                            // Try average as fallback
+                            finalUsage = Math.Min(sumGpuUsage / validReadings, 100);
+                        }
+                        
+                        txtGpu.Text = $"{finalUsage:F1}%";
+                    }
+                    else
+                    {
+                        txtGpu.Text = "0%";
+                    }
                 }
-                else
+                catch { /* ignored */ }
+            }
+            else if (_useWmiForGpu)
+            {
+                // Fallback to WMI method
+                try
+                {
+                    var gpuUsage = GetGpuUsageWmi();
+                    if (gpuUsage.HasValue)
+                    {
+                        txtGpu.Text = $"{gpuUsage.Value:F1}%";
+                    }
+                    else
+                    {
+                        txtGpu.Text = "0%";
+                    }
+                }
+                catch
                 {
                     txtGpu.Text = "0%";
                 }
             }
-            catch
+            else
             {
                 txtGpu.Text = "0%";
             }
         }
-        else
-        {
-            txtGpu.Text = "0%";
-        }
 
         if (updateTopProcesses)
         {
-            var (topCpu, topRam) = GetTopProcesses();
-            txtTopCpu.Text = topCpu ?? "-";
-            txtTopRam.Text = topRam ?? "-";
+            // Optimization: Only scan for top processes if CPU or RAM view is enabled
+            if (_settings.ShowCpu || _settings.ShowRam)
+            {
+                var (topCpu, topRam) = GetTopProcesses();
+                if (_settings.ShowCpu) txtTopCpu.Text = topCpu ?? "-";
+                if (_settings.ShowRam) txtTopRam.Text = topRam ?? "-";
+            }
             
-            // Get top GPU process
-            var topGpu = GetTopGpuProcess();
-            txtTopGpu.Text = topGpu ?? "-";
+            // Get top GPU process only if GPU view is enabled
+            if (_settings.ShowGpu)
+            {
+                var topGpu = GetTopGpuProcess();
+                txtTopGpu.Text = topGpu ?? "-";
+            }
         }
     }
     

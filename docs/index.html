@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="WinWebSpeed - Ultra-lightweight native Windows network and system monitor. Only 2MB. Always visible, fully transparent overlay.">
+        content="WinWebSpeed - Ultra-lightweight native Windows network and system monitor. Only 1.8MB. Always visible, fully transparent overlay.">
     <meta name="keywords"
-        content="network monitor, system monitor, windows, lightweight, native, transparent overlay, cpu monitor, ram monitor">
+        content="network monitor, system monitor, windows, lightweight, native, transparent overlay, cpu monitor, gpu monitor, ram monitor">
     <title>WinWebSpeed - Ultra-Lightweight Network & System Monitor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +36,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                 </svg>
-                <span>Native • 2.0MB • Zero Bloat</span>
+                <span>Native • 1.8MB • Zero Bloat</span>
             </div>
 
             <h1 class="hero-title">
@@ -45,7 +45,7 @@
             </h1>
 
             <p class="hero-description">
-                Ultra-lightweight transparent overlay for Windows. Monitor network speeds, CPU, and RAM
+                Ultra-lightweight transparent overlay for Windows. Monitor network speeds, CPU, GPU, and RAM
                 in real-time without cluttering your screen. Native C# application, not another resource hog.
             </p>
 
@@ -57,7 +57,7 @@
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
                     Download for Windows
-                    <span class="btn-subtitle">2.0MB • Free Forever</span>
+                    <span class="btn-subtitle">1.8MB • Free Forever</span>
                 </a>
                 <div class="hero-meta">
                     <span class="hero-meta-item">
@@ -123,6 +123,16 @@
                             <div class="overlay-process" id="demo-cpu-process">chrome</div>
                         </div>
 
+                        <!-- GPU -->
+                        <div class="overlay-item">
+                            <div class="overlay-item-header">
+                                <span class="overlay-label">GPU</span>
+                                <span class="overlay-value" id="demo-gpu">0</span>
+                                <span class="overlay-unit">%</span>
+                            </div>
+                            <div class="overlay-process" id="demo-gpu-process">-</div>
+                        </div>
+
                         <!-- RAM -->
                         <div class="overlay-item">
                             <div class="overlay-item-header">
@@ -179,7 +189,7 @@
                 </div>
                 <h3 class="benefit-title">Truly Lightweight</h3>
                 <p class="benefit-text">
-                    Just 2.0MB. Native C# application. Uses minimal RAM.
+                    Just 1.8MB. Native C# application. Uses minimal RAM.
                     No bloated frameworks, no background services, no nonsense.
                 </p>
             </div>
@@ -222,7 +232,7 @@
                         </svg>
                     </div>
                     <div class="feature-content">
-                        <h4 class="feature-title">CPU & RAM Usage</h4>
+                        <h4 class="feature-title">CPU, GPU & RAM Usage</h4>
                         <p class="feature-desc">Percentage + top consuming process</p>
                     </div>
                 </div>
@@ -295,7 +305,7 @@
                 <div class="step">
                     <div class="step-number">1</div>
                     <h3 class="step-title">Download</h3>
-                    <p class="step-text">Single 2.01.8MB executable. No installer, no dependencies.</p>
+                    <p class="step-text">Single 1.8MB executable. No installer, no dependencies.</p>
                 </div>
 
                 <div class="step-arrow">→</div>
@@ -348,7 +358,7 @@
                                 stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            CPU & RAM usage tracking
+                            CPU, GPU & RAM usage tracking
                         </li>
                         <li>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
